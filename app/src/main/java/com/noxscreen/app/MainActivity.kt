@@ -241,6 +241,18 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
             
             ExpandableConfigSection(
+                title = "Security",
+                icon = Icons.Default.Lock,
+                isExpanded = false
+            ) {
+                ZenithSwitchRow("Enable Biometric Authentication", "Use fingerprint or face recognition to enhance security", autoConfig.isBiometricEnabled) { 
+                    autoConfig = autoConfig.copy(isBiometricEnabled = it); automationSettings.updateConfig(autoConfig) 
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            ExpandableConfigSection(
                 title = "Usage Limits",
                 icon = Icons.Default.HealthAndSafety,
                 isExpanded = false

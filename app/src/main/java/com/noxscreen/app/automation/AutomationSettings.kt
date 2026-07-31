@@ -18,10 +18,11 @@ data class AutomationConfig(
     val floatingLockSize: Float = 0.5f,
     val showBatteryPercentage: Boolean = true,
     val use24HourTime: Boolean = false,
-    val tapsToWake: Int = 2,
+    val tapsToWake: Int = 1,
     val hideFloatingButton: Boolean = false,
     val reduceBrightness: Boolean = false,
-    val oledBurnInProtection: Boolean = true
+    val oledBurnInProtection: Boolean = true,
+    val isBiometricEnabled: Boolean = false
 )
 
 class AutomationSettings(context: Context) {
@@ -43,10 +44,11 @@ class AutomationSettings(context: Context) {
             floatingLockSize = prefs.getFloat("floating_lock_size", 0.5f),
             showBatteryPercentage = prefs.getBoolean("show_battery_percentage", true),
             use24HourTime = prefs.getBoolean("use_24_hour_time", false),
-            tapsToWake = prefs.getInt("taps_to_wake", 2),
+            tapsToWake = prefs.getInt("taps_to_wake", 1),
             hideFloatingButton = prefs.getBoolean("hide_floating_button", false),
             reduceBrightness = prefs.getBoolean("reduce_brightness", false),
-            oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", true)
+            oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", true),
+            isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false)
         )
     }
 
@@ -70,6 +72,7 @@ class AutomationSettings(context: Context) {
             .putBoolean("hide_floating_button", config.hideFloatingButton)
             .putBoolean("reduce_brightness", config.reduceBrightness)
             .putBoolean("oled_burn_in_protection", config.oledBurnInProtection)
+            .putBoolean("is_biometric_enabled", config.isBiometricEnabled)
             .apply()
     }
 

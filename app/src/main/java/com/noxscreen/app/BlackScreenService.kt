@@ -54,6 +54,13 @@ class BlackScreenService : Service() {
             }
         }
     }
+    private val resetToBlackRunnable = Runnable {
+        isUnlockScreenVisible = false
+        tapCount = 0
+        aodContainer?.visibility = View.GONE
+        unlockButton?.visibility = View.GONE
+        handler.removeCallbacks(timeUpdater)
+    }
     
     private var blackoutStartTime = 0L
 
@@ -130,6 +137,12 @@ class BlackScreenService : Service() {
         if (intent?.action == "STOP_SERVICE") {
             stopSelf()
             return START_NOT_STICKY
+        }
+        
+        if (intent?.action == "BIOMETRIC_SUCCESS") {
+            smartAutomationManager.handleManualDismiss()
+            showFloatingBubbleInternal()
+            return START_STICKY
         }
         
         if (intent?.action == "START_BLACKOUT") {
@@ -311,8 +324,16 @@ class BlackScreenService : Service() {
                 visibility = View.GONE
                 
                 setOnClickListener {
-                    smartAutomationManager.handleManualDismiss()
-                    showFloatingBubbleInternal()
+                    handler.removeCallbacks(resetToBlackRunnable)
+                    val config = smartAutomationManager.settings.getConfig()
+                    if (config.isBiometricEnabled) {
+                        val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        startActivity(intent)
+                    } else {
+                        smartAutomationManager.handleManualDismiss()
+                        showFloatingBubbleInternal()
+                    }
                 }
             }
             
@@ -344,6 +365,9 @@ class BlackScreenService : Service() {
                         unlockButton?.visibility = View.VISIBLE
                         updateAodInfo()
                         handler.post(timeUpdater)
+                        
+                        handler.removeCallbacks(resetToBlackRunnable)
+                        handler.postDelayed(resetToBlackRunnable, 10000)
                     }
                 }
             }
@@ -415,17 +439,25 @@ class BlackScreenService : Service() {
                 aodContainer?.visibility = View.GONE
                 unlockButton?.visibility = View.GONE
                 handler.removeCallbacks(timeUpdater)
+                handler.removeCallbacks(resetToBlackRunnable)
 
                 val params = WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
                     WindowManager.LayoutParams.MATCH_PARENT,
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    PixelFormat.TRANSLUCENT
+                    PixelFormat.OPAQUE
+                )
+                
+                blackoutView?.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
                 )
                 windowManager.addView(blackoutView, params)
                 blackoutStartTime = System.currentTimeMillis()

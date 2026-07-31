@@ -39,6 +39,10 @@
             android:name=".BlackoutActivity"
             android:exported="false"
             android:theme="@style/Theme.MyApplication" />
+        <activity
+            android:name=".BiometricAuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MyApplication" />
     </application>
 
 </manifest>

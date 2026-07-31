@@ -8,6 +8,9 @@ import android.os.BatteryManager
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,8 +35,30 @@ import java.util.Date
 import java.util.Locale
 
 class BlackoutActivity : ComponentActivity() {
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.noxscreen.app.BIOMETRIC_SUCCESS") {
+                finish()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(receiver)
+        } catch (e: Exception) {}
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val filter = IntentFilter("com.noxscreen.app.BIOMETRIC_SUCCESS")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
         
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
@@ -45,10 +70,26 @@ class BlackoutActivity : ComponentActivity() {
         val layoutParams = window.attributes
         layoutParams.screenBrightness = 0f
         window.attributes = layoutParams
+        
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).let { controller ->
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         setContent {
             MyApplicationTheme(darkTheme = true) {
-                BlackoutScreen(onUnlock = { finish() })
+                BlackoutScreen(onUnlock = { 
+                    val settings = com.noxscreen.app.automation.AutomationSettings(this)
+                    val isBiometricEnabled = settings.getConfig().isBiometricEnabled
+                    if (isBiometricEnabled) {
+                        val intent = Intent(this, BiometricAuthActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        startActivity(intent)
+                    } else {
+                        finish() 
+                    }
+                })
             }
         }
     }
@@ -67,6 +108,13 @@ fun BlackoutScreen(onUnlock: () -> Unit) {
         if (tapCount > 0 && !isUnlockScreenVisible) {
             delay(1500)
             tapCount = 0
+        }
+    }
+    
+    LaunchedEffect(isUnlockScreenVisible) {
+        if (isUnlockScreenVisible) {
+            delay(10000)
+            isUnlockScreenVisible = false
         }
     }
     
