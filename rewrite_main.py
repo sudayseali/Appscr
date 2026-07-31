@@ -1,4 +1,6 @@
-package com.noxscreen.app
+import sys
+
+new_content = """package com.noxscreen.app
 
 import android.content.Context
 import android.content.Intent
@@ -409,3 +411,7 @@ fun ZenithSwitchRow(title: String, subtitle: String, checked: Boolean, onChecked
         )
     }
 }
+"""
+
+with open('app/src/main/java/com/noxscreen/app/MainActivity.kt', 'w') as f:
+    f.write(new_content)

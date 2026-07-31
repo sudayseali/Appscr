@@ -5,10 +5,13 @@ import android.content.Context
 class SmartAutomationManager(
     private val context: Context,
     private val onTriggerOverlay: (triggeredBySensor: Boolean) -> Unit,
-    private val onRemoveOverlay: () -> Unit
+    private val onRemoveOverlay: () -> Unit,
+    var onSleepTimerTick: ((remainingSec: Long) -> Unit)? = null,
+    var onSleepTimerExpired: (() -> Unit)? = null
 ) {
     val settings = AutomationSettings(context)
     val timerHandler = TimerHandler()
+    val sleepTimerHandler = SleepTimerHandler()
     val sensorHandler = SensorHandler(context)
     val analyticsManager = UsageAnalyticsManager(context)
 
@@ -33,6 +36,7 @@ class SmartAutomationManager(
                     // Remove overlay ONLY if triggered by proximity sensor
                     if (triggeredBySensor) {
                         triggeredBySensor = false
+                        stopSleepTimer()
                         onRemoveOverlay()
                     }
                 }
@@ -55,6 +59,25 @@ class SmartAutomationManager(
         }
     }
 
+    fun startSleepTimerIfEnabled() {
+        val config = settings.getConfig()
+        if (config.isSleepTimerEnabled && config.sleepTimerDurationMinutes > 0) {
+            sleepTimerHandler.startSleepTimer(
+                durationMinutes = config.sleepTimerDurationMinutes,
+                onTick = { remainingSec ->
+                    onSleepTimerTick?.invoke(remainingSec)
+                },
+                onFinished = {
+                    onSleepTimerExpired?.invoke()
+                }
+            )
+        }
+    }
+
+    fun stopSleepTimer() {
+        sleepTimerHandler.stopSleepTimer()
+    }
+
     fun handleUserActivation() {
         analyticsManager.recordActivation()
         val config = settings.getConfig()
@@ -72,6 +95,7 @@ class SmartAutomationManager(
 
     fun handleManualDismiss() {
         timerHandler.cancelTimer()
+        stopSleepTimer()
         triggeredBySensor = false
     }
 
@@ -89,5 +113,6 @@ class SmartAutomationManager(
     fun stopSensors() {
         sensorHandler.stop()
         timerHandler.cancelTimer()
+        stopSleepTimer()
     }
 }

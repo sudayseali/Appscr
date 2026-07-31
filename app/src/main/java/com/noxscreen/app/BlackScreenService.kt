@@ -35,6 +35,25 @@ class BlackScreenService : Service() {
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
     private var blackoutView: View? = null
+    private var sleepTimerTextView: TextView? = null
+    private var aodClockTextView: TextView? = null
+    private var aodBatteryTextView: TextView? = null
+    private var aodStatusTextView: TextView? = null
+    private var aodDateTextView: TextView? = null
+    private var aodContainer: View? = null
+    private var unlockButton: View? = null
+    private var tapCount = 0
+    private var lastTapTime = 0L
+    private var isUnlockScreenVisible = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val timeUpdater = object : Runnable {
+        override fun run() {
+            if (isUnlockScreenVisible) {
+                updateAodInfo()
+                handler.postDelayed(this, 1000)
+            }
+        }
+    }
     
     private var blackoutStartTime = 0L
 
@@ -56,6 +75,34 @@ class BlackScreenService : Service() {
             },
             onRemoveOverlay = {
                 showFloatingBubbleInternal()
+            },
+            onSleepTimerTick = { remainingSec ->
+                val minutes = remainingSec / 60
+                val seconds = remainingSec % 60
+                val timeStr = String.format("%02d:%02d", minutes, seconds)
+                sleepTimerTextView?.post {
+                    sleepTimerTextView?.text = "Waqti-xire (Sleep Timer): $timeStr"
+                    sleepTimerTextView?.visibility = View.VISIBLE
+                }
+            },
+            onSleepTimerExpired = {
+                Handler(Looper.getMainLooper()).post {
+                    android.widget.Toast.makeText(
+                        this,
+                        "Waqti-xire: NoxScreen waa la xirey si batteriga loo baajiyo (Sleep Timer expired)",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                    
+                    if (blackoutStartTime > 0) {
+                        addTimeSaved(System.currentTimeMillis() - blackoutStartTime)
+                        blackoutStartTime = 0
+                    }
+                    try {
+                        if (floatingView?.parent != null) windowManager.removeView(floatingView)
+                        if (blackoutView?.parent != null) windowManager.removeView(blackoutView)
+                    } catch (e: Exception) { }
+                    stopSelf()
+                }
             }
         )
         
@@ -185,40 +232,129 @@ class BlackScreenService : Service() {
         }
     }
 
+    private fun getBatteryPercentage(): Int {
+        return try {
+            val bm = getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager
+            bm?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
+        } catch (e: Exception) {
+            100
+        }
+    }
+
+    private fun updateAodInfo() {
+        val timeSdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        val dateSdf = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
+        val now = java.util.Date()
+        aodClockTextView?.text = timeSdf.format(now)
+        aodDateTextView?.text = dateSdf.format(now)
+        aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
+    }
+
+    private fun getCurrentFormattedTime(): String {
+        val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date())
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setupBlackoutView() {
         blackoutView = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
             
-            val hintText = TextView(this@BlackScreenService).apply {
-                text = "Double tap to unlock"
-                setTextColor(Color.DKGRAY)
+            // Top AOD Container
+            val topContainer = LinearLayout(this@BlackScreenService).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+                setPadding(0, 200, 0, 0)
+                visibility = View.GONE
+            }
+            aodContainer = topContainer
+
+            aodClockTextView = TextView(this@BlackScreenService).apply {
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                textSize = 64f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+            topContainer.addView(aodClockTextView)
+
+            aodDateTextView = TextView(this@BlackScreenService).apply {
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                textSize = 16f
+                setPadding(0, 16, 0, 32)
+            }
+            topContainer.addView(aodDateTextView)
+
+            aodBatteryTextView = TextView(this@BlackScreenService).apply {
+                setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
                 textSize = 16f
             }
-            addView(hintText, FrameLayout.LayoutParams(
+            topContainer.addView(aodBatteryTextView)
+
+            addView(topContainer, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, 
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            })
+            
+            // Bottom UNLOCK button
+            unlockButton = TextView(this@BlackScreenService).apply {
+                text = "UNLOCK"
+                setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
+                textSize = 14f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                letterSpacing = 0.1f
+                setPadding(0, 40, 0, 40)
+                visibility = View.GONE
+                
+                setOnClickListener {
+                    smartAutomationManager.handleManualDismiss()
+                    showFloatingBubbleInternal()
+                }
+            }
+            
+            addView(unlockButton, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, 
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = 150
             })
         }
 
-        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                smartAutomationManager.handleManualDismiss()
-                showFloatingBubbleInternal()
-                return true
-            }
-        })
-
         blackoutView?.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                if (!isUnlockScreenVisible) {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastTapTime > 1500) {
+                        tapCount = 0
+                    }
+                    lastTapTime = currentTime
+                    tapCount++
+                    
+                    val config = smartAutomationManager.settings.getConfig()
+                    if (tapCount >= config.tapsToWake) {
+                        isUnlockScreenVisible = true
+                        tapCount = 0
+                        
+                        aodContainer?.visibility = View.VISIBLE
+                        unlockButton?.visibility = View.VISIBLE
+                        updateAodInfo()
+                        handler.post(timeUpdater)
+                    }
+                }
+            }
             true
         }
     }
 
     private fun showFloatingBubbleInternal() {
+        handler.removeCallbacks(timeUpdater)
+        smartAutomationManager.stopSleepTimer()
+        sleepTimerTextView?.visibility = View.GONE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
             return
         }
@@ -245,12 +381,13 @@ class BlackScreenService : Service() {
                 windowManager.addView(floatingView, params)
             }
         } catch (e: Exception) {
-            val intent = Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName"))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-            
-            Handler(Looper.getMainLooper()).post {
-                android.widget.Toast.makeText(this, "Please grant overlay permission", android.widget.Toast.LENGTH_LONG).show()
+            // Fallback: If floating button fails, start BlackoutActivity directly
+            try {
+                val intent = Intent(this, BlackoutActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                startActivity(intent)
+            } catch (e2: Exception) {
+                e2.printStackTrace()
             }
         }
     }
@@ -267,6 +404,18 @@ class BlackScreenService : Service() {
 
         try {
             if (blackoutView?.parent == null) {
+                val config = smartAutomationManager.settings.getConfig()
+                blackoutView?.setBackgroundColor(
+                    if (config.isDarkTintEnabled) Color.parseColor("#ED0C0C12") else Color.BLACK
+                )
+
+                // Always start pure black
+                isUnlockScreenVisible = false
+                tapCount = 0
+                aodContainer?.visibility = View.GONE
+                unlockButton?.visibility = View.GONE
+                handler.removeCallbacks(timeUpdater)
+
                 val params = WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
                     WindowManager.LayoutParams.MATCH_PARENT,
@@ -281,13 +430,16 @@ class BlackScreenService : Service() {
                 windowManager.addView(blackoutView, params)
                 blackoutStartTime = System.currentTimeMillis()
                 incrementUsageCount()
+                smartAutomationManager.startSleepTimerIfEnabled()
             }
         } catch (e: Exception) {
-            val intent = Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName"))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-            Handler(Looper.getMainLooper()).post {
-                android.widget.Toast.makeText(this, "Please grant overlay permission", android.widget.Toast.LENGTH_LONG).show()
+            // Fallback to Activity if overlay is denied by AppOps
+            try {
+                val intent = Intent(this, BlackoutActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                startActivity(intent)
+            } catch (e2: Exception) {
+                e2.printStackTrace()
             }
         }
     }
