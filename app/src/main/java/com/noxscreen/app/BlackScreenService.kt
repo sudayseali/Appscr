@@ -203,6 +203,7 @@ class BlackScreenService : Service() {
     }
 
     private var floatingIconView: ImageView? = null
+    private var floatingLayoutParams: WindowManager.LayoutParams? = null
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupFloatingView() {
@@ -216,17 +217,18 @@ class BlackScreenService : Service() {
             addView(icon, FrameLayout.LayoutParams(150, 150))
         }
 
-        val params = WindowManager.LayoutParams(
+        floatingLayoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
+        floatingLayoutParams?.gravity = Gravity.TOP or Gravity.START
+        floatingLayoutParams?.x = 0
+        floatingLayoutParams?.y = 100
 
-        params.gravity = Gravity.TOP or Gravity.START
-        params.x = 0
-        params.y = 100
+        val params = floatingLayoutParams!!
 
         var initialX = 0
         var initialY = 0
@@ -412,10 +414,21 @@ class BlackScreenService : Service() {
                 "double_circle" -> R.drawable.ic_double_circle
                 "key" -> R.drawable.ic_key
                 "eye_off" -> R.drawable.ic_eye_off
+                "shield" -> R.drawable.ic_shield
+                "fingerprint" -> R.drawable.ic_fingerprint
+                "power" -> R.drawable.ic_power
+                "bolt" -> R.drawable.ic_bolt
+                "favorite" -> R.drawable.ic_favorite
                 else -> R.drawable.ic_moon
             }
             setImageResource(iconRes)
+            requestLayout()
         }
+        try {
+            if (floatingView?.parent != null) {
+                windowManager.updateViewLayout(floatingView, floatingLayoutParams)
+            }
+        } catch (e: Exception) {}
     }
 
     private fun showFloatingBubbleInternal() {
@@ -438,25 +451,10 @@ class BlackScreenService : Service() {
 
         try {
             if (floatingView?.parent == null) {
-                val params = WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                    PixelFormat.TRANSLUCENT
-                )
-                params.gravity = Gravity.TOP or Gravity.START
-                windowManager.addView(floatingView, params)
+                windowManager.addView(floatingView, floatingLayoutParams)
             }
         } catch (e: Exception) {
-            // Fallback: If floating button fails, start BlackoutActivity directly
-            try {
-                val intent = Intent(this, BlackoutActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(intent)
-            } catch (e2: Exception) {
-                e2.printStackTrace()
-            }
+            android.util.Log.e("BlackScreenService", "Error adding floating view", e)
         }
     }
 

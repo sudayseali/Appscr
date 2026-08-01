@@ -51,7 +51,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF050510)
                 ) {
-                    var hasPermission by remember { mutableStateOf(checkOverlayPermission()) }
+                    var showSplash by remember { mutableStateOf(true) }
+                    
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(2500)
+                        showSplash = false
+                    }
+                    
+                    if (showSplash) {
+                        SplashScreen()
+                    } else {
+                        var hasPermission by remember { mutableStateOf(checkOverlayPermission()) }
                     
                     val context = LocalContext.current
                     val prefs = remember { context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE) }
@@ -97,6 +107,7 @@ class MainActivity : ComponentActivity() {
                         totalTimeSaved = totalTimeSaved,
                         usageCount = usageCount
                     )
+                    }
                 }
             }
         }
@@ -143,7 +154,6 @@ class MainActivity : ComponentActivity() {
 
     private fun startBlackScreenService() {
         if (!checkOverlayPermission()) {
-            // Even if we don't have overlay permission, we can launch BlackoutActivity!
             val intent = Intent(this, BlackoutActivity::class.java)
             startActivity(intent)
             return
@@ -160,9 +170,6 @@ class MainActivity : ComponentActivity() {
             moveTaskToBack(true)
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback to BlackoutActivity
-            val fallbackIntent = Intent(this, BlackoutActivity::class.java)
-            startActivity(fallbackIntent)
         }
     }
 }
@@ -269,7 +276,12 @@ fun ZenithApp(
                     "circle" to androidx.compose.ui.res.painterResource(R.drawable.ic_circle),
                     "double_circle" to androidx.compose.ui.res.painterResource(R.drawable.ic_double_circle),
                     "key" to androidx.compose.ui.res.painterResource(R.drawable.ic_key),
-                    "eye_off" to androidx.compose.ui.res.painterResource(R.drawable.ic_eye_off))
+                    "eye_off" to androidx.compose.ui.res.painterResource(R.drawable.ic_eye_off),
+                    "shield" to androidx.compose.ui.res.painterResource(R.drawable.ic_shield),
+                    "fingerprint" to androidx.compose.ui.res.painterResource(R.drawable.ic_fingerprint),
+                    "power" to androidx.compose.ui.res.painterResource(R.drawable.ic_power),
+                    "bolt" to androidx.compose.ui.res.painterResource(R.drawable.ic_bolt),
+                    "favorite" to androidx.compose.ui.res.painterResource(R.drawable.ic_favorite))
                         
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -512,5 +524,45 @@ fun ZenithSwitchRow(title: String, subtitle: String, checked: Boolean, onChecked
                 uncheckedBorderColor = ZenithTextMuted
             )
         )
+    }
+}
+
+@Composable
+fun SplashScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ZenithBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.NightsStay,
+                contentDescription = "App Icon",
+                tint = ZenithAccent,
+                modifier = Modifier.size(100.dp)
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = "NOXSCREEN",
+                color = Color.White,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 4.sp
+            )
+            Text(
+                text = "PRO",
+                color = ZenithAccent,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 8.sp
+            )
+            Spacer(modifier = Modifier.height(64.dp))
+            CircularProgressIndicator(
+                color = ZenithAccent,
+                modifier = Modifier.size(36.dp),
+                strokeWidth = 3.dp
+            )
+        }
     }
 }

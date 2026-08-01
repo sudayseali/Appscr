@@ -76,6 +76,7 @@ class AutomationSettings(private val context: Context) {
             .apply()
             
         val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")
+        intent.setPackage(context.packageName)
         context.sendBroadcast(intent)
     }
 
