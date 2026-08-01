@@ -494,8 +494,13 @@ class BlackScreenService : Service() {
                             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                     PixelFormat.OPAQUE
                 ).apply {
+                    screenBrightness = 0f
+                    buttonBrightness = 0f
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        preferredRefreshRate = 30f // Suggest lowest standard refresh rate
                     }
                 }
                 
