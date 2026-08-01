@@ -25,7 +25,7 @@ data class AutomationConfig(
     val isBiometricEnabled: Boolean = false
 )
 
-class AutomationSettings(context: Context) {
+class AutomationSettings(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("NoxAutomationPrefs", Context.MODE_PRIVATE)
 
     fun getConfig(): AutomationConfig {
@@ -74,6 +74,9 @@ class AutomationSettings(context: Context) {
             .putBoolean("oled_burn_in_protection", config.oledBurnInProtection)
             .putBoolean("is_biometric_enabled", config.isBiometricEnabled)
             .apply()
+            
+        val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")
+        context.sendBroadcast(intent)
     }
 
     fun setTimerEnabled(enabled: Boolean) {

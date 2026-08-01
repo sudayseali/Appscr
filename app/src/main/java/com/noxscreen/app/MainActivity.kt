@@ -73,10 +73,27 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    var isServiceRunning by remember { mutableStateOf(isServiceRunning()) }
+                    
+                    LaunchedEffect(Unit) {
+                        while(true) {
+                            isServiceRunning = isServiceRunning()
+                            kotlinx.coroutines.delay(1000)
+                        }
+                    }
+
                     ZenithApp(
                         hasPermission = hasPermission,
                         onRequestPermission = { requestOverlayPermission() },
-                        onStartService = { startBlackScreenService() },
+                        onStartService = { 
+                            startBlackScreenService()
+                            isServiceRunning = true
+                        },
+                        onStopService = {
+                            stopBlackScreenService()
+                            isServiceRunning = false
+                        },
+                        isServiceRunning = isServiceRunning,
                         totalTimeSaved = totalTimeSaved,
                         usageCount = usageCount
                     )
@@ -107,6 +124,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun isServiceRunning(): Boolean {
+        val manager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (BlackScreenService::class.java.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+    
+    private fun stopBlackScreenService() {
+        val intent = Intent(this, BlackScreenService::class.java).apply {
+            action = "STOP_SERVICE"
+        }
+        startService(intent)
+    }
+
     private fun startBlackScreenService() {
         if (!checkOverlayPermission()) {
             // Even if we don't have overlay permission, we can launch BlackoutActivity!
@@ -115,7 +149,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         val intent = Intent(this, BlackScreenService::class.java).apply {
-            action = "START_BLACKOUT"
+            action = "START_SERVICE"
         }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -145,6 +179,8 @@ fun ZenithApp(
     hasPermission: Boolean,
     onRequestPermission: () -> Unit,
     onStartService: () -> Unit,
+    onStopService: () -> Unit,
+    isServiceRunning: Boolean,
     totalTimeSaved: Long,
     usageCount: Int
 ) {
@@ -170,7 +206,12 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(40.dp))
             
             // Central Power Button
-            PowerPulseButton(onClick = onStartService)
+            PowerPulseButton(
+                onClick = {
+                    if (isServiceRunning) onStopService() else onStartService()
+                },
+                isRunning = isServiceRunning
+            )
             
             Spacer(modifier = Modifier.height(48.dp))
             
@@ -220,6 +261,58 @@ fun ZenithApp(
                     autoConfig = autoConfig.copy(hideFloatingButton = !it); automationSettings.updateConfig(autoConfig) 
                 }
                 
+                
+                Text("Floating Lock Style", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+                
+                val styles = listOf("lock" to androidx.compose.ui.res.painterResource(R.drawable.ic_lock),
+                    "moon" to androidx.compose.ui.res.painterResource(R.drawable.ic_moon),
+                    "circle" to androidx.compose.ui.res.painterResource(R.drawable.ic_circle),
+                    "double_circle" to androidx.compose.ui.res.painterResource(R.drawable.ic_double_circle),
+                    "key" to androidx.compose.ui.res.painterResource(R.drawable.ic_key),
+                    "eye_off" to androidx.compose.ui.res.painterResource(R.drawable.ic_eye_off))
+                        
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(styles.size) { index ->
+                        val (styleName, painter) = styles[index]
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(ZenithCard)
+                                .border(
+                                    2.dp,
+                                    if (autoConfig.floatingLockStyle == styleName) ZenithAccent else Color.Transparent,
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { 
+                                    autoConfig = autoConfig.copy(floatingLockStyle = styleName)
+                                    automationSettings.updateConfig(autoConfig) 
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(painter, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+                
+                Text("Floating Lock Size", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp))
+                androidx.compose.material3.Slider(
+                    value = autoConfig.floatingLockSize,
+                    onValueChange = { 
+                        autoConfig = autoConfig.copy(floatingLockSize = it)
+                        automationSettings.updateConfig(autoConfig)
+                    },
+                    valueRange = 0.5f..2.0f,
+                    colors = androidx.compose.material3.SliderDefaults.colors(
+                        thumbColor = ZenithAccent,
+                        activeTrackColor = ZenithAccent,
+                        inactiveTrackColor = ZenithCard
+                    )
+                )
+
                 // Wake gesture selector
                 Text("Wake Gesture (Taps)", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -267,7 +360,7 @@ fun ZenithApp(
 }
 
 @Composable
-fun PowerPulseButton(onClick: () -> Unit) {
+fun PowerPulseButton(onClick: () -> Unit, isRunning: Boolean = false) {
     val infiniteTransition = rememberInfiniteTransition()
     val pulse by infiniteTransition.animateFloat(
         initialValue = 0.8f,

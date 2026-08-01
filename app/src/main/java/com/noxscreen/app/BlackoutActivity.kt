@@ -69,6 +69,9 @@ class BlackoutActivity : ComponentActivity() {
         // Set brightness to minimum
         val layoutParams = window.attributes
         layoutParams.screenBrightness = 0f
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         window.attributes = layoutParams
         
         WindowCompat.setDecorFitsSystemWindows(window, false)
