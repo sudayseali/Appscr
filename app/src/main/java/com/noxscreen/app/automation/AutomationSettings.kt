@@ -22,7 +22,10 @@ data class AutomationConfig(
     val hideFloatingButton: Boolean = false,
     val reduceBrightness: Boolean = false,
     val oledBurnInProtection: Boolean = true,
-    val isBiometricEnabled: Boolean = false
+    val isBiometricEnabled: Boolean = false,
+    val isUsageLimitsEnabled: Boolean = false,
+    val usageLimitDurationMinutes: Int = 15,
+    val blockedApps: Set<String> = emptySet()
 )
 
 class AutomationSettings(private val context: Context) {
@@ -48,7 +51,10 @@ class AutomationSettings(private val context: Context) {
             hideFloatingButton = prefs.getBoolean("hide_floating_button", false),
             reduceBrightness = prefs.getBoolean("reduce_brightness", false),
             oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", true),
-            isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false)
+            isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false),
+            isUsageLimitsEnabled = prefs.getBoolean("is_usage_limits_enabled", false),
+            usageLimitDurationMinutes = prefs.getInt("usage_limit_duration_min", 15),
+            blockedApps = prefs.getStringSet("blocked_apps", emptySet()) ?: emptySet()
         )
     }
 
@@ -73,6 +79,9 @@ class AutomationSettings(private val context: Context) {
             .putBoolean("reduce_brightness", config.reduceBrightness)
             .putBoolean("oled_burn_in_protection", config.oledBurnInProtection)
             .putBoolean("is_biometric_enabled", config.isBiometricEnabled)
+            .putBoolean("is_usage_limits_enabled", config.isUsageLimitsEnabled)
+            .putInt("usage_limit_duration_min", config.usageLimitDurationMinutes)
+            .putStringSet("blocked_apps", config.blockedApps)
             .apply()
             
         val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")

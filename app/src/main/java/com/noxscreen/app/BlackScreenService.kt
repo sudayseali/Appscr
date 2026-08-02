@@ -70,6 +70,7 @@ class BlackScreenService : Service() {
     private val notificationId = 1
 
     private lateinit var smartAutomationManager: com.noxscreen.app.automation.SmartAutomationManager
+    private lateinit var usageLimitMonitor: com.noxscreen.app.automation.UsageLimitMonitor
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -170,6 +171,7 @@ class BlackScreenService : Service() {
             showFloatingBubbleInternal()
             smartAutomationManager.startSensors()
         }
+        usageLimitMonitor.startMonitoring()
         return START_STICKY
     }
 
@@ -529,6 +531,7 @@ class BlackScreenService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        usageLimitMonitor.stopMonitoring()
         try {
             unregisterReceiver(settingsReceiver)
         } catch (e: Exception) {}

@@ -119,16 +119,33 @@ fun BlackoutScreen(onUnlock: () -> Unit) {
     }
     
     LaunchedEffect(isUnlockScreenVisible) {
+        val window = (context as? android.app.Activity)?.window
         if (isUnlockScreenVisible) {
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             delay(10000)
             isUnlockScreenVisible = false
+        } else {
+            // After 5 seconds of black screen, remove KEEP_SCREEN_ON to allow real device sleep
+            delay(5000)
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
     
+    val fadeAlpha = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(Unit) {
+        fadeAlpha.animateTo(
+            targetValue = 1f,
+            animationSpec = androidx.compose.animation.core.tween(
+                durationMillis = 2000,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing
+            )
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(Color.Black.copy(alpha = fadeAlpha.value))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
