@@ -264,6 +264,29 @@ fun ZenithApp(
                 ZenithSwitchRow("Pocket Mode", "Auto-lock in pocket", autoConfig.isPocketModeEnabled) { 
                     autoConfig = autoConfig.copy(isPocketModeEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
+                
+                // Sleep Timer (Battery Saver)
+                ZenithSwitchRow("Sleep Timer (Battery Saver)", "Turn off screen completely after time", autoConfig.isSleepTimerEnabled) {
+                    autoConfig = autoConfig.copy(isSleepTimerEnabled = it)
+                    automationSettings.updateConfig(autoConfig)
+                }
+                if (autoConfig.isSleepTimerEnabled) {
+                    Text("Time to sleep: ${autoConfig.sleepTimerDurationMinutes} minutes", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+                    Slider(
+                        value = autoConfig.sleepTimerDurationMinutes.toFloat(),
+                        onValueChange = { 
+                            autoConfig = autoConfig.copy(sleepTimerDurationMinutes = it.toInt())
+                            automationSettings.updateConfig(autoConfig)
+                        },
+                        valueRange = 1f..120f,
+                        steps = 118,
+                        colors = SliderDefaults.colors(
+                            thumbColor = ZenithAccent,
+                            activeTrackColor = ZenithAccent,
+                            inactiveTrackColor = ZenithSecondary.copy(alpha = 0.3f)
+                        )
+                    )
+                }
                 ZenithSwitchRow("Floating Action Button", "Show quick-access button", !autoConfig.hideFloatingButton) { 
                     autoConfig = autoConfig.copy(hideFloatingButton = !it); automationSettings.updateConfig(autoConfig) 
                 }
@@ -358,14 +381,87 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
             
             ExpandableConfigSection(
-                title = "Usage Limits",
+                title = "Usage Limits (Focus Mode)",
                 icon = Icons.Default.HealthAndSafety,
                 isExpanded = false
             ) {
-                Text("Helpful for digital wellbeing", color = ZenithTextMuted, fontSize = 12.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-                ZenithSwitchRow("Daily Limit (1hr)", "Stop overlay after limit", false) { }
-                ZenithSwitchRow("Bedtime Mode", "Auto-trigger at 10 PM", false) { }
+                val lifecycleOwner = LocalLifecycleOwner.current
+                var hasUsageStatsPermission by remember { mutableStateOf(false) }
+
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            hasUsageStatsPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                                val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+                                val mode = appOps.checkOpNoThrow(
+                                    android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, 
+                                    android.os.Process.myUid(), 
+                                    context.packageName
+                                )
+                                mode == android.app.AppOpsManager.MODE_ALLOWED
+                            } else {
+                                true
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+
+                if (!hasUsageStatsPermission) {
+                    Button(
+                        onClick = {
+                            context.startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ZenithAccent),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    ) {
+                        Text("Grant Usage Access", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    ZenithSwitchRow("Enable App Limits", "Block apps when time runs out", autoConfig.isUsageLimitsEnabled) { 
+                        autoConfig = autoConfig.copy(isUsageLimitsEnabled = it)
+                        automationSettings.updateConfig(autoConfig) 
+                    }
+                    if (autoConfig.isUsageLimitsEnabled) {
+                        Text("Limit: ${autoConfig.usageLimitDurationMinutes} minutes", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+                        Slider(
+                            value = autoConfig.usageLimitDurationMinutes.toFloat(),
+                            onValueChange = { 
+                                autoConfig = autoConfig.copy(usageLimitDurationMinutes = it.toInt())
+                                automationSettings.updateConfig(autoConfig)
+                            },
+                            valueRange = 1f..120f,
+                            steps = 118,
+                            colors = SliderDefaults.colors(
+                                thumbColor = ZenithAccent,
+                                activeTrackColor = ZenithAccent,
+                                inactiveTrackColor = ZenithSecondary.copy(alpha = 0.3f)
+                            )
+                        )
+                        
+                        Button(
+                            onClick = {
+                                val newBlockedApps = if (autoConfig.blockedApps.isEmpty()) {
+                                    setOf("com.google.android.youtube", "com.android.chrome", "com.facebook.katana", "com.instagram.android", "com.zhiliaoapp.musically", "com.snapchat.android", "com.whatsapp", "com.twitter.android", "com.google.android.apps.photos", "com.sec.android.gallery3d", "com.android.gallery3d")
+                                } else {
+                                    emptySet<String>()
+                                }
+                                autoConfig = autoConfig.copy(blockedApps = newBlockedApps)
+                                automationSettings.updateConfig(autoConfig)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        ) {
+                            Text(if (autoConfig.blockedApps.isEmpty()) "Block Apps (Socials & Gallery)" else "Unblock All Apps", color = ZenithAccent)
+                        }
+                        if (autoConfig.blockedApps.isNotEmpty()) {
+                            Text("Blocked: ${autoConfig.blockedApps.size} apps (Snapchat, Gallery, Socials)", color = ZenithTextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                        }
+                    }
+                }
             }
         }
     }
