@@ -42,8 +42,14 @@ import com.noxscreen.app.ui.theme.MyApplicationTheme
 import com.noxscreen.app.automation.AutomationConfig
 
 class MainActivity : ComponentActivity() {
+    private lateinit var adsManager: com.noxscreen.app.ads.UnityAdsManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        adsManager = com.noxscreen.app.ads.UnityAdsManager(this)
+        adsManager.initialize()
+
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme(darkTheme = true) {
@@ -96,12 +102,17 @@ class MainActivity : ComponentActivity() {
                         hasPermission = hasPermission,
                         onRequestPermission = { requestOverlayPermission() },
                         onStartService = { 
-                            startBlackScreenService()
-                            isServiceRunning = true
+                            // Show rewarded ad, then start black screen
+                            adsManager.showRewardedAd(this@MainActivity) {
+                                startBlackScreenService()
+                                isServiceRunning = true
+                            }
                         },
                         onStopService = {
                             stopBlackScreenService()
                             isServiceRunning = false
+                            // Trigger possible interstitial ad
+                            adsManager.onStopAction(this@MainActivity)
                         },
                         isServiceRunning = isServiceRunning,
                         totalTimeSaved = totalTimeSaved,

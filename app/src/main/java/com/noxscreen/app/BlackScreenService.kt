@@ -131,6 +131,14 @@ class BlackScreenService : Service() {
                 }
             }
         )
+
+        usageLimitMonitor = com.noxscreen.app.automation.UsageLimitMonitor(
+            context = this,
+            automationSettings = smartAutomationManager.settings,
+            onTriggerBlock = {
+                showBlackoutInternal()
+            }
+        )
         
         createNotificationChannel()
         try {
