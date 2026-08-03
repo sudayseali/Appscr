@@ -70,8 +70,8 @@ class BiometricAuthActivity : FragmentActivity() {
 
         promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Unlock NoxScreen")
-            .setSubtitle("Use your fingerprint or face to unlock")
-            .setNegativeButtonText("Cancel")
+            .setSubtitle("Use your biometric or device lock to unlock")
+            .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
             .build()
 
         biometricPrompt.authenticate(promptInfo)

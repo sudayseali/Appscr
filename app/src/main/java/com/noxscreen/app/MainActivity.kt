@@ -475,6 +475,11 @@ fun ZenithApp(
                 }
             }
         }
+        
+        com.noxscreen.app.ads.UnityBannerAd(
+            adUnitId = "bannerAd", // Default test placement or you can use your actual unit ID
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
