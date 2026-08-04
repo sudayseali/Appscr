@@ -44,6 +44,11 @@
             android:name=".BiometricAuthActivity"
             android:exported="false"
             android:theme="@style/Theme.MyApplication" />
+            
+        <activity
+            android:name=".AdLauncherActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MyApplication" />
     </application>
 
 </manifest>

@@ -19,31 +19,40 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     private val INTERSTITIAL_AD_UNIT_ID = "interstitialVideo"
     private val testMode = true
 
-    private var isInitialized = false
-
     // State for controlling interstitial frequency
     private var stopCounter = 0
     private val SHOW_INTERSTITIAL_EVERY = 3
 
-    fun initialize() {
-        if (!isInitialized) {
+    private var onInitComplete: (() -> Unit)? = null
+    
+    fun initialize(onComplete: (() -> Unit)? = null) {
+        onInitComplete = onComplete
+        if (!UnityAds.isInitialized) {
             UnityAds.initialize(context, GAME_ID, testMode, this)
+        } else {
+            onInitComplete?.invoke()
+            onInitComplete = null
+            loadAd(REWARDED_AD_UNIT_ID)
+            loadAd(INTERSTITIAL_AD_UNIT_ID)
         }
     }
 
     override fun onInitializationComplete() {
-        isInitialized = true
         Log.d(TAG, "Unity Ads Initialization Complete")
         loadAd(REWARDED_AD_UNIT_ID)
         loadAd(INTERSTITIAL_AD_UNIT_ID)
+        onInitComplete?.invoke()
+        onInitComplete = null
     }
 
     override fun onInitializationFailed(error: UnityAds.UnityAdsInitializationError?, message: String?) {
         Log.e(TAG, "Unity Ads Initialization Failed: $error - $message")
+        onInitComplete?.invoke()
+        onInitComplete = null
     }
 
     private fun loadAd(adUnitId: String) {
-        if (!isInitialized) return
+        if (!UnityAds.isInitialized) return
         UnityAds.load(adUnitId, object : IUnityAdsLoadListener {
             override fun onUnityAdsAdLoaded(placementId: String) {
                 Log.d(TAG, "Ad Loaded: $placementId")
@@ -59,8 +68,37 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
      * Shows a rewarded ad. Triggers [onComplete] regardless of whether the ad was watched successfully, skipped, or failed.
      * This ensures the app flow is not blocked.
      */
+    fun showMultipleRewardedAds(activity: Activity, remainingAds: Int, onComplete: () -> Unit) {
+        if (remainingAds <= 0 || !UnityAds.isInitialized) {
+            onComplete()
+            return
+        }
+
+        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
+                Log.e(TAG, "Rewarded Ad Failed to show: $error - $message")
+                // On failure, continue with remaining ads (or you might want to skip the rest, but let's try to show the rest)
+                showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
+            }
+
+            override fun onUnityAdsShowStart(placementId: String) {
+                Log.d(TAG, "Rewarded Ad Started")
+            }
+
+            override fun onUnityAdsShowClick(placementId: String) {
+                Log.d(TAG, "Rewarded Ad Clicked")
+            }
+
+            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
+                Log.d(TAG, "Rewarded Ad Completed with state: $state")
+                loadAd(REWARDED_AD_UNIT_ID) // Preload next
+                showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
+            }
+        })
+    }
+
     fun showRewardedAd(activity: Activity, onComplete: () -> Unit) {
-        if (!isInitialized) {
+        if (!UnityAds.isInitialized) {
             onComplete()
             return
         }
@@ -101,7 +139,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     }
 
     private fun showInterstitialAd(activity: Activity) {
-        if (!isInitialized) return
+        if (!UnityAds.isInitialized) return
 
         UnityAds.show(activity, INTERSTITIAL_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
             override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {

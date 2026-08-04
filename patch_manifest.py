@@ -3,12 +3,25 @@ import sys
 with open('app/src/main/AndroidManifest.xml', 'r') as f:
     content = f.read()
 
-if 'BlackoutActivity' not in content:
-    content = content.replace('</application>', '''        <activity
-            android:name=".BlackoutActivity"
+target = """        <activity
+            android:name=".BiometricAuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MyApplication" />"""
+
+replacement = """        <activity
+            android:name=".BiometricAuthActivity"
             android:exported="false"
             android:theme="@style/Theme.MyApplication" />
-    </application>''')
-    
+            
+        <activity
+            android:name=".AdLauncherActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MyApplication" />"""
+
+if target in content:
+    content = content.replace(target, replacement)
     with open('app/src/main/AndroidManifest.xml', 'w') as f:
         f.write(content)
+    print("Replaced!")
+else:
+    print("Not found")

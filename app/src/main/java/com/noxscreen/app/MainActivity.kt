@@ -102,8 +102,8 @@ class MainActivity : ComponentActivity() {
                         hasPermission = hasPermission,
                         onRequestPermission = { requestOverlayPermission() },
                         onStartService = { 
-                            // Show rewarded ad, then start black screen
-                            adsManager.showRewardedAd(this@MainActivity) {
+                            // Show 3 rewarded ads, then start black screen
+                            adsManager.showMultipleRewardedAds(this@MainActivity, 3) {
                                 startBlackScreenService()
                                 isServiceRunning = true
                             }
@@ -477,7 +477,7 @@ fun ZenithApp(
         }
         
         com.noxscreen.app.ads.UnityBannerAd(
-            adUnitId = "bannerAd", // Default test placement or you can use your actual unit ID
+            adUnitId = "Banner_Android", // Default test placement or you can use your actual unit ID
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
