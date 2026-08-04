@@ -1,27 +1,11 @@
-import sys
+import re
 
-with open('app/src/main/AndroidManifest.xml', 'r') as f:
+with open('app/src/main/AndroidManifest.xml', 'r', encoding='utf-8') as f:
     content = f.read()
 
-target = """        <activity
-            android:name=".BiometricAuthActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MyApplication" />"""
+# Add attribution tag
+if '<attribution' not in content:
+    content = content.replace('<application', '    <attribution android:tag="noxscreen" android:label="@string/app_name" />\n\n    <application')
 
-replacement = """        <activity
-            android:name=".BiometricAuthActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MyApplication" />
-            
-        <activity
-            android:name=".AdLauncherActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MyApplication" />"""
-
-if target in content:
-    content = content.replace(target, replacement)
-    with open('app/src/main/AndroidManifest.xml', 'w') as f:
-        f.write(content)
-    print("Replaced!")
-else:
-    print("Not found")
+with open('app/src/main/AndroidManifest.xml', 'w', encoding='utf-8') as f:
+    f.write(content)

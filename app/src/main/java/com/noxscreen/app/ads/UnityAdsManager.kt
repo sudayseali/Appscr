@@ -21,7 +21,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
 
     // State for controlling interstitial frequency
     private var stopCounter = 0
-    private val SHOW_INTERSTITIAL_EVERY = 3
+    private val SHOW_INTERSTITIAL_EVERY = 1
 
     private var onInitComplete: (() -> Unit)? = null
     
@@ -130,6 +130,49 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     /**
      * Called when the user stops the black screen. Shows an interstitial every 3rd time.
      */
+    
+    fun showRewardedAdWithWait(
+        activity: Activity,
+        onLoading: () -> Unit,
+        onSuccess: () -> Unit,
+        onFailed: () -> Unit
+    ) {
+        if (!UnityAds.isInitialized) {
+            onFailed()
+            return
+        }
+
+        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
+                onLoading()
+                UnityAds.load(REWARDED_AD_UNIT_ID, object : IUnityAdsLoadListener {
+                    override fun onUnityAdsAdLoaded(placementId: String) {
+                        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+                            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
+                                onFailed()
+                            }
+                            override fun onUnityAdsShowStart(placementId: String) {}
+                            override fun onUnityAdsShowClick(placementId: String) {}
+                            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
+                                if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) onSuccess() else onFailed()
+                                loadAd(REWARDED_AD_UNIT_ID)
+                            }
+                        })
+                    }
+                    override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String) {
+                        onFailed()
+                    }
+                })
+            }
+            override fun onUnityAdsShowStart(placementId: String) {}
+            override fun onUnityAdsShowClick(placementId: String) {}
+            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
+                if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) onSuccess() else onFailed()
+                loadAd(REWARDED_AD_UNIT_ID)
+            }
+        })
+    }
+
     fun onStopAction(activity: Activity) {
         stopCounter++
         if (stopCounter >= SHOW_INTERSTITIAL_EVERY) {

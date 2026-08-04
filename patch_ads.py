@@ -1,45 +1,58 @@
-import sys
+import re
 
-with open('app/src/main/java/com/noxscreen/app/ads/UnityAdsManager.kt', 'r') as f:
+with open('app/src/main/java/com/noxscreen/app/ads/UnityAdsManager.kt', 'r', encoding='utf-8') as f:
     content = f.read()
 
-target = """    fun showRewardedAd(activity: Activity, onComplete: () -> Unit) {"""
+# Change SHOW_INTERSTITIAL_EVERY to 1 so it always shows on stop
+content = content.replace("private val SHOW_INTERSTITIAL_EVERY = 3", "private val SHOW_INTERSTITIAL_EVERY = 1")
 
-replacement = """    fun showMultipleRewardedAds(activity: Activity, remainingAds: Int, onComplete: () -> Unit) {
-        if (remainingAds <= 0 || !isInitialized) {
-            onComplete()
+# Add showRewardedAdWithWait
+new_method = """
+    fun showRewardedAdWithWait(
+        activity: Activity,
+        onLoading: () -> Unit,
+        onSuccess: () -> Unit,
+        onFailed: () -> Unit
+    ) {
+        if (!UnityAds.isInitialized) {
+            onFailed()
             return
         }
 
         UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
             override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
-                Log.e(TAG, "Rewarded Ad Failed to show: $error - $message")
-                // On failure, continue with remaining ads (or you might want to skip the rest, but let's try to show the rest)
-                showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
+                onLoading()
+                UnityAds.load(REWARDED_AD_UNIT_ID, object : IUnityAdsLoadListener {
+                    override fun onUnityAdsAdLoaded(placementId: String) {
+                        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+                            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
+                                onFailed()
+                            }
+                            override fun onUnityAdsShowStart(placementId: String) {}
+                            override fun onUnityAdsShowClick(placementId: String) {}
+                            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
+                                if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) onSuccess() else onFailed()
+                                loadAd(REWARDED_AD_UNIT_ID)
+                            }
+                        })
+                    }
+                    override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String) {
+                        onFailed()
+                    }
+                })
             }
-
-            override fun onUnityAdsShowStart(placementId: String) {
-                Log.d(TAG, "Rewarded Ad Started")
-            }
-
-            override fun onUnityAdsShowClick(placementId: String) {
-                Log.d(TAG, "Rewarded Ad Clicked")
-            }
-
+            override fun onUnityAdsShowStart(placementId: String) {}
+            override fun onUnityAdsShowClick(placementId: String) {}
             override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
-                Log.d(TAG, "Rewarded Ad Completed with state: $state")
-                loadAd(REWARDED_AD_UNIT_ID) // Preload next
-                showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
+                if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) onSuccess() else onFailed()
+                loadAd(REWARDED_AD_UNIT_ID)
             }
         })
     }
+"""
 
-    fun showRewardedAd(activity: Activity, onComplete: () -> Unit) {"""
+if "showRewardedAdWithWait" not in content:
+    content = content.replace("fun onStopAction(activity: Activity) {", new_method + "\n    fun onStopAction(activity: Activity) {")
 
-if target in content:
-    content = content.replace(target, replacement)
-    with open('app/src/main/java/com/noxscreen/app/ads/UnityAdsManager.kt', 'w') as f:
-        f.write(content)
-    print("Replaced!")
-else:
-    print("Not found")
+with open('app/src/main/java/com/noxscreen/app/ads/UnityAdsManager.kt', 'w', encoding='utf-8') as f:
+    f.write(content)

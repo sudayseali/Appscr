@@ -22,4 +22,6 @@
     <string name="tap_to_grant">Taabo si aad u siiso marin u helka asalka.</string>
     <string name="start">Bilow</string>
     <string name="stop">Jooji</string>
+    <string name="language">Luuqadda</string>
+    <string name="select_language">Dooro luuqad</string>
 </resources>

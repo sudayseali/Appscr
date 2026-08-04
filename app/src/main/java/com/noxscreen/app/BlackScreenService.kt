@@ -33,6 +33,11 @@ import androidx.core.app.NotificationCompat
 import kotlin.math.abs
 
 class BlackScreenService : Service() {
+    companion object {
+        var isRunning = false
+            private set
+    }
+
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
@@ -161,6 +166,7 @@ class BlackScreenService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        isRunning = true
         if (intent?.action == "STOP_SERVICE") {
             stopSelf()
             return START_NOT_STICKY
@@ -540,6 +546,7 @@ class BlackScreenService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         super.onDestroy()
         usageLimitMonitor.stopMonitoring()
         try {

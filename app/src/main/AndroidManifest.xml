@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
 
+        <attribution android:tag="noxscreen" android:label="@string/app_name" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -46,6 +48,30 @@
             android:theme="@style/Theme.MyApplication" />
             
 
+            <service
+            android:name=".NoxTileService"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+            <receiver android:name=".NoxWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/nox_widget_info" />
+        </receiver>
+
+        <receiver android:name=".WidgetActionReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="TOGGLE_NOX_SCREEN" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

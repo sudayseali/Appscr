@@ -22,4 +22,12 @@
     <string name="tap_to_grant">Tap to grant access for background functionality.</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
+    <string name="language">Language</string>
+    <string name="select_language">Select language</string>
+
+    <string name="battery_analytics">Battery Analytics</string>
+    <string name="gamification">Achievements</string>
+    <string name="level">Level</string>
+    <string name="hours_saved">Hours Saved</string>
+    <string name="next_level">Next Level</string>
 </resources>

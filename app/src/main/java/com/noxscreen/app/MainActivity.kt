@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -133,14 +135,19 @@ class MainActivity : ComponentActivity() {
                         isServiceRunning = isServiceRunning,
                         totalTimeSaved = totalTimeSaved,
                         usageCount = usageCount,
-                        onUnlockPremiumStyle = { styleName, onUnlocked ->
-                            adsManager.showRewardedAd(this@MainActivity) {
-                                val currentConfig = com.noxscreen.app.automation.AutomationSettings(this@MainActivity).getConfig()
-                                val newUnlocked = currentConfig.unlockedStyles + styleName
-                                val newConfig = currentConfig.copy(floatingLockStyle = styleName, unlockedStyles = newUnlocked)
-                                com.noxscreen.app.automation.AutomationSettings(this@MainActivity).updateConfig(newConfig)
-                                onUnlocked()
-                            }
+                        onUnlockPremiumStyle = { styleName, onLoading, onSuccess, onFailed ->
+                            adsManager.showRewardedAdWithWait(
+                                this@MainActivity,
+                                onLoading = onLoading,
+                                onSuccess = {
+                                    val currentConfig = com.noxscreen.app.automation.AutomationSettings(this@MainActivity).getConfig()
+                                    val newUnlocked = currentConfig.unlockedStyles + styleName
+                                    val newConfig = currentConfig.copy(floatingLockStyle = styleName, unlockedStyles = newUnlocked)
+                                    com.noxscreen.app.automation.AutomationSettings(this@MainActivity).updateConfig(newConfig)
+                                    onSuccess()
+                                },
+                                onFailed = onFailed
+                            )
                         }
                     )
                     }
@@ -226,12 +233,14 @@ fun ZenithApp(
     isServiceRunning: Boolean,
     totalTimeSaved: Long,
     usageCount: Int,
-    onUnlockPremiumStyle: (String, () -> Unit) -> Unit
+    onUnlockPremiumStyle: (String, () -> Unit, () -> Unit, () -> Unit) -> Unit
 ) {
     val context = LocalContext.current
     val automationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
     var autoConfig by remember { mutableStateOf(automationSettings.getConfig()) }
     val scrollState = rememberScrollState()
+    
+    var showAdLoading by remember { mutableStateOf(false) }
     
     val estimatedMah = ((totalTimeSaved / (1000f * 60f * 60f)) * 200f).toInt()
     
@@ -286,6 +295,7 @@ fun ZenithApp(
                 icon = Icons.Default.DisplaySettings,
                 isExpanded = true
             ) {
+                LanguageRow()
                 ZenithSwitchRow(stringResource(R.string.always_on_display), "Show time on dark screen", autoConfig.isAodEnabled) { 
                     autoConfig = autoConfig.copy(isAodEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
@@ -373,9 +383,18 @@ fun ZenithApp(
                                         autoConfig = autoConfig.copy(floatingLockStyle = styleName)
                                         automationSettings.updateConfig(autoConfig)
                                     } else {
-                                        onUnlockPremiumStyle(styleName) {
-                                            autoConfig = automationSettings.getConfig()
-                                        }
+                                        onUnlockPremiumStyle(
+                                            styleName,
+                                            { showAdLoading = true },
+                                            { 
+                                                showAdLoading = false
+                                                autoConfig = automationSettings.getConfig()
+                                            },
+                                            { 
+                                                showAdLoading = false
+                                                android.widget.Toast.makeText(context, "Please connect to the internet to unlock this style.", android.widget.Toast.LENGTH_LONG).show()
+                                            }
+                                        )
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -657,6 +676,80 @@ fun ExpandableConfigSection(title: String, icon: ImageVector, isExpanded: Boolea
 }
 
 @Composable
+fun GamificationSection(totalTimeSaved: Long) {
+    val totalHours = (totalTimeSaved / 3600000).toFloat()
+    
+    // Level calculation: 1 hour = Level 1, 5 hours = Level 2, 10 hours = Level 3, 20 hours = Level 4...
+    val (level, currentLevelThreshold, nextLevelThreshold) = when {
+        totalHours < 1 -> Triple(0, 0f, 1f)
+        totalHours < 5 -> Triple(1, 1f, 5f)
+        totalHours < 10 -> Triple(2, 5f, 10f)
+        totalHours < 25 -> Triple(3, 10f, 25f)
+        totalHours < 50 -> Triple(4, 25f, 50f)
+        totalHours < 100 -> Triple(5, 50f, 100f)
+        else -> Triple(6, 100f, 200f) // Keep extending as needed
+    }
+    
+    val progress = ((totalHours - currentLevelThreshold) / (nextLevelThreshold - currentLevelThreshold)).coerceIn(0f, 1f)
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF131422), RoundedCornerShape(12.dp))
+            .border(1.dp, Color(0xFF2A2E44), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Level $level",
+                    color = ZenithAccent,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${String.format("%.1f", totalHours)} Hours Saved",
+                    color = ZenithTextMuted,
+                    fontSize = 14.sp
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.EmojiEvents,
+                contentDescription = "Trophy",
+                tint = if (level > 0) Color(0xFFFFD700) else Color.Gray,
+                modifier = Modifier.size(40.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            color = ZenithAccent,
+            trackColor = Color(0xFF2A2E44)
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("${currentLevelThreshold.toInt()}h", color = ZenithTextMuted, fontSize = 12.sp)
+            Text("${nextLevelThreshold.toInt()}h to next", color = ZenithTextMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
 fun ZenithSwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
@@ -724,7 +817,7 @@ fun SplashScreen() {
 }
 
 @Composable
-fun LanguageSelector() {
+fun LanguageRow() {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     
@@ -756,22 +849,31 @@ fun LanguageSelector() {
         "gu" to "ગુજરાતી"
     )
 
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Default.Language, contentDescription = "Language", tint = ZenithSecondary)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).clickable { expanded = true },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(stringResource(R.string.language), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.select_language), color = ZenithTextMuted, fontSize = 11.sp, lineHeight = 14.sp)
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            languages.forEach { (code, name) ->
-                DropdownMenuItem(
-                    text = { Text(name, color = Color.White) },
-                    onClick = {
-                        expanded = false
-                        setAppLocale(context, code)
-                    }
-                )
+        
+        Box {
+            Icon(Icons.Default.Language, contentDescription = "Language", tint = ZenithSecondary)
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                languages.forEach { (code, name) ->
+                    DropdownMenuItem(
+                        text = { Text(name, color = Color.White) },
+                        onClick = {
+                            expanded = false
+                            setAppLocale(context, code)
+                        }
+                    )
+                }
             }
         }
     }
