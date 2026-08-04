@@ -25,7 +25,8 @@ data class AutomationConfig(
     val isBiometricEnabled: Boolean = false,
     val isUsageLimitsEnabled: Boolean = false,
     val usageLimitDurationMinutes: Int = 15,
-    val blockedApps: Set<String> = emptySet()
+    val blockedApps: Set<String> = emptySet(),
+    val unlockedStyles: Set<String> = setOf("lock", "moon", "circle", "power")
 )
 
 class AutomationSettings(private val context: Context) {
@@ -54,7 +55,8 @@ class AutomationSettings(private val context: Context) {
             isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false),
             isUsageLimitsEnabled = prefs.getBoolean("is_usage_limits_enabled", false),
             usageLimitDurationMinutes = prefs.getInt("usage_limit_duration_min", 15),
-            blockedApps = prefs.getStringSet("blocked_apps", emptySet()) ?: emptySet()
+            blockedApps = prefs.getStringSet("blocked_apps", emptySet()) ?: emptySet(),
+            unlockedStyles = prefs.getStringSet("unlocked_styles", setOf("lock", "moon", "circle", "power")) ?: setOf("lock", "moon", "circle", "power")
         )
     }
 
@@ -82,6 +84,7 @@ class AutomationSettings(private val context: Context) {
             .putBoolean("is_usage_limits_enabled", config.isUsageLimitsEnabled)
             .putInt("usage_limit_duration_min", config.usageLimitDurationMinutes)
             .putStringSet("blocked_apps", config.blockedApps)
+            .putStringSet("unlocked_styles", config.unlockedStyles)
             .apply()
             
         val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")

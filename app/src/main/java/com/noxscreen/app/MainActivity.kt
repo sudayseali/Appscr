@@ -35,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.noxscreen.app.R
+
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -46,6 +49,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val prefs = getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
+        val savedLang = prefs.getString("app_language", "en") ?: "en"
+        val locale = java.util.Locale(savedLang)
+        java.util.Locale.setDefault(locale)
+        val config = resources.configuration
+        config.setLocale(locale)
+        resources.updateConfiguration(config, resources.displayMetrics)
         
         adsManager = com.noxscreen.app.ads.UnityAdsManager(this)
         adsManager.initialize()
@@ -68,8 +79,16 @@ class MainActivity : ComponentActivity() {
                         SplashScreen()
                     } else {
                         var hasPermission by remember { mutableStateOf(checkOverlayPermission()) }
+                        var hasRequestedPermissionOnStart by remember { mutableStateOf(false) }
+                        
+                        LaunchedEffect(hasPermission) {
+                            if (!hasPermission && !hasRequestedPermissionOnStart) {
+                                hasRequestedPermissionOnStart = true
+                                requestOverlayPermission()
+                            }
+                        }
                     
-                    val context = LocalContext.current
+                        val context = LocalContext.current
                     val prefs = remember { context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE) }
                     var totalTimeSaved by remember { mutableStateOf(prefs.getLong("total_time_saved", 0L)) }
                     var usageCount by remember { mutableStateOf(prefs.getInt("usage_count", 0)) }
@@ -102,11 +121,8 @@ class MainActivity : ComponentActivity() {
                         hasPermission = hasPermission,
                         onRequestPermission = { requestOverlayPermission() },
                         onStartService = { 
-                            // Show 3 rewarded ads, then start black screen
-                            adsManager.showMultipleRewardedAds(this@MainActivity, 3) {
-                                startBlackScreenService()
-                                isServiceRunning = true
-                            }
+                            startBlackScreenService()
+                            isServiceRunning = true
                         },
                         onStopService = {
                             stopBlackScreenService()
@@ -116,7 +132,16 @@ class MainActivity : ComponentActivity() {
                         },
                         isServiceRunning = isServiceRunning,
                         totalTimeSaved = totalTimeSaved,
-                        usageCount = usageCount
+                        usageCount = usageCount,
+                        onUnlockPremiumStyle = { styleName, onUnlocked ->
+                            adsManager.showRewardedAd(this@MainActivity) {
+                                val currentConfig = com.noxscreen.app.automation.AutomationSettings(this@MainActivity).getConfig()
+                                val newUnlocked = currentConfig.unlockedStyles + styleName
+                                val newConfig = currentConfig.copy(floatingLockStyle = styleName, unlockedStyles = newUnlocked)
+                                com.noxscreen.app.automation.AutomationSettings(this@MainActivity).updateConfig(newConfig)
+                                onUnlocked()
+                            }
+                        }
                     )
                     }
                 }
@@ -200,7 +225,8 @@ fun ZenithApp(
     onStopService: () -> Unit,
     isServiceRunning: Boolean,
     totalTimeSaved: Long,
-    usageCount: Int
+    usageCount: Int,
+    onUnlockPremiumStyle: (String, () -> Unit) -> Unit
 ) {
     val context = LocalContext.current
     val automationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
@@ -218,15 +244,21 @@ fun ZenithApp(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
-            Text("ZENITH", color = ZenithAccent, fontSize = 32.sp, fontWeight = FontWeight.Black, letterSpacing = 8.sp)
-            Text("ECO SCREEN OPTIMIZER", color = ZenithSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+            Text(stringResource(R.string.app_name), color = ZenithAccent, fontSize = 32.sp, fontWeight = FontWeight.Black, letterSpacing = 8.sp)
+            Text(stringResource(R.string.eco_screen_optimizer), color = ZenithSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
             
             Spacer(modifier = Modifier.height(40.dp))
             
             // Central Power Button
             PowerPulseButton(
                 onClick = {
-                    if (isServiceRunning) onStopService() else onStartService()
+                    if (!hasPermission) {
+                        onRequestPermission()
+                    } else if (isServiceRunning) {
+                        onStopService()
+                    } else {
+                        onStartService()
+                    }
                 },
                 isRunning = isServiceRunning
             )
@@ -240,27 +272,27 @@ fun ZenithApp(
             
             // Unique Impact Cards
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ImpactCard("Energy Saved", "${estimatedMah} mAh", Icons.Default.EnergySavingsLeaf, ZenithAccent, Modifier.weight(1f))
+                ImpactCard(stringResource(R.string.energy_saved), "${estimatedMah} mAh", Icons.Default.EnergySavingsLeaf, ZenithAccent, Modifier.weight(1f))
                 val hours = (totalTimeSaved / 3600000).toInt()
                 val mins = ((totalTimeSaved % 3600000) / 60000).toInt()
-                ImpactCard("Screen Off", "${hours}h ${mins}m", Icons.Default.Timer, ZenithSecondary, Modifier.weight(1f))
+                ImpactCard(stringResource(R.string.screen_off), "${hours}h ${mins}m", Icons.Default.Timer, ZenithSecondary, Modifier.weight(1f))
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             
             // Expandable Settings
             ExpandableConfigSection(
-                title = "Display Settings",
+                title = stringResource(R.string.display_settings),
                 icon = Icons.Default.DisplaySettings,
                 isExpanded = true
             ) {
-                ZenithSwitchRow("Always-On Display", "Show time on dark screen", autoConfig.isAodEnabled) { 
+                ZenithSwitchRow(stringResource(R.string.always_on_display), "Show time on dark screen", autoConfig.isAodEnabled) { 
                     autoConfig = autoConfig.copy(isAodEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
-                ZenithSwitchRow("OLED Pixel Shift", "Prevent screen burn-in", autoConfig.oledBurnInProtection) { 
+                ZenithSwitchRow(stringResource(R.string.oled_pixel_shift), "Prevent screen burn-in", autoConfig.oledBurnInProtection) { 
                     autoConfig = autoConfig.copy(oledBurnInProtection = it); automationSettings.updateConfig(autoConfig) 
                 }
-                ZenithSwitchRow("Privacy Tint", "Dim screen instead of total black", autoConfig.isDarkTintEnabled) { 
+                ZenithSwitchRow(stringResource(R.string.privacy_tint), "Dim screen instead of total black", autoConfig.isDarkTintEnabled) { 
                     autoConfig = autoConfig.copy(isDarkTintEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
             }
@@ -268,16 +300,16 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
             
             ExpandableConfigSection(
-                title = "Smart Triggers",
+                title = stringResource(R.string.smart_triggers),
                 icon = Icons.Default.Sensors,
                 isExpanded = false
             ) {
-                ZenithSwitchRow("Pocket Mode", "Auto-lock in pocket", autoConfig.isPocketModeEnabled) { 
+                ZenithSwitchRow(stringResource(R.string.pocket_mode), "Auto-lock in pocket", autoConfig.isPocketModeEnabled) { 
                     autoConfig = autoConfig.copy(isPocketModeEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
                 
                 // Sleep Timer (Battery Saver)
-                ZenithSwitchRow("Sleep Timer (Battery Saver)", "Turn off screen completely after time", autoConfig.isSleepTimerEnabled) {
+                ZenithSwitchRow(stringResource(R.string.sleep_timer), "Turn off screen completely after time", autoConfig.isSleepTimerEnabled) {
                     autoConfig = autoConfig.copy(isSleepTimerEnabled = it)
                     automationSettings.updateConfig(autoConfig)
                 }
@@ -298,12 +330,12 @@ fun ZenithApp(
                         )
                     )
                 }
-                ZenithSwitchRow("Floating Action Button", "Show quick-access button", !autoConfig.hideFloatingButton) { 
+                ZenithSwitchRow(stringResource(R.string.floating_action_button), "Show quick-access button", !autoConfig.hideFloatingButton) { 
                     autoConfig = autoConfig.copy(hideFloatingButton = !it); automationSettings.updateConfig(autoConfig) 
                 }
                 
                 
-                Text("Floating Lock Style", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+                Text(stringResource(R.string.floating_lock_style), color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
                 
                 val styles = listOf("lock" to androidx.compose.ui.res.painterResource(R.drawable.ic_lock),
                     "moon" to androidx.compose.ui.res.painterResource(R.drawable.ic_moon),
@@ -322,7 +354,10 @@ fun ZenithApp(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(styles.size) { index ->
-                        val (styleName, painter) = styles[index]
+                                                val (styleName, painter) = styles[index]
+                        val isUnlocked = autoConfig.unlockedStyles.contains(styleName)
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val activity = context as? android.app.Activity
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
@@ -334,17 +369,26 @@ fun ZenithApp(
                                     RoundedCornerShape(12.dp)
                                 )
                                 .clickable { 
-                                    autoConfig = autoConfig.copy(floatingLockStyle = styleName)
-                                    automationSettings.updateConfig(autoConfig) 
+                                    if (isUnlocked) {
+                                        autoConfig = autoConfig.copy(floatingLockStyle = styleName)
+                                        automationSettings.updateConfig(autoConfig)
+                                    } else {
+                                        onUnlockPremiumStyle(styleName) {
+                                            autoConfig = automationSettings.getConfig()
+                                        }
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(painter, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                            Icon(painter, contentDescription = null, tint = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.3f), modifier = Modifier.size(24.dp))
+                            if (!isUnlocked) {
+                                Icon(androidx.compose.material.icons.Icons.Default.Lock, contentDescription = "Locked", tint = ZenithAccent, modifier = Modifier.size(16.dp).align(Alignment.BottomEnd))
+                            }
                         }
                     }
                 }
                 
-                Text("Floating Lock Size", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.floating_lock_size), color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp))
                 androidx.compose.material3.Slider(
                     value = autoConfig.floatingLockSize,
                     onValueChange = { 
@@ -360,7 +404,7 @@ fun ZenithApp(
                 )
 
                 // Wake gesture selector
-                Text("Wake Gesture (Taps)", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+                Text(stringResource(R.string.wake_gesture), color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     (1..4).forEach { taps ->
                         Box(
@@ -380,11 +424,11 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
             
             ExpandableConfigSection(
-                title = "Security",
+                title = stringResource(R.string.security),
                 icon = Icons.Default.Lock,
                 isExpanded = false
             ) {
-                ZenithSwitchRow("Enable Biometric Authentication", "Use fingerprint or face recognition to enhance security", autoConfig.isBiometricEnabled) { 
+                ZenithSwitchRow(stringResource(R.string.enable_biometric), "Use fingerprint or face recognition to enhance security", autoConfig.isBiometricEnabled) { 
                     autoConfig = autoConfig.copy(isBiometricEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
             }
@@ -392,7 +436,7 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
             
             ExpandableConfigSection(
-                title = "Usage Limits (Focus Mode)",
+                title = stringResource(R.string.usage_limits),
                 icon = Icons.Default.HealthAndSafety,
                 isExpanded = false
             ) {
@@ -553,8 +597,8 @@ fun PermissionBanner(onRequestPermission: () -> Unit) {
         Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(28.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("Overlay Permission Required", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text("Tap to grant access for background functionality.", color = Color(0xFFFFB3B3), fontSize = 12.sp)
+            Text(stringResource(R.string.overlay_permission), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.tap_to_grant), color = Color(0xFFFFB3B3), fontSize = 12.sp)
         }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFFF5252))
     }
@@ -676,5 +720,74 @@ fun SplashScreen() {
                 strokeWidth = 3.dp
             )
         }
+    }
+}
+
+@Composable
+fun LanguageSelector() {
+    val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+    
+    val languages = listOf(
+        "en" to "English",
+        "so" to "Somali",
+        "ar" to "العربية",
+        "bn" to "বাংলা",
+        "zh" to "中文",
+        "es" to "Español",
+        "fr" to "Français",
+        "de" to "Deutsch",
+        "hi" to "हिन्दी",
+        "id" to "Bahasa Indonesia",
+        "it" to "Italiano",
+        "ja" to "日本語",
+        "ko" to "한국어",
+        "mr" to "मराठी",
+        "pa" to "ਪੰਜਾਬੀ",
+        "pt" to "Português",
+        "ru" to "Русский",
+        "te" to "తెలుగు",
+        "tr" to "Türkçe",
+        "ur" to "اردو",
+        "vi" to "Tiếng Việt",
+        "sw" to "Kiswahili",
+        "fa" to "فارسی",
+        "ta" to "தமிழ்",
+        "gu" to "ગુજરાતી"
+    )
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.Language, contentDescription = "Language", tint = ZenithSecondary)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            languages.forEach { (code, name) ->
+                DropdownMenuItem(
+                    text = { Text(name, color = Color.White) },
+                    onClick = {
+                        expanded = false
+                        setAppLocale(context, code)
+                    }
+                )
+            }
+        }
+    }
+}
+
+fun setAppLocale(context: Context, languageCode: String) {
+    val prefs = context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
+    prefs.edit().putString("app_language", languageCode).apply()
+    
+    val locale = java.util.Locale(languageCode)
+    java.util.Locale.setDefault(locale)
+    val resources = context.resources
+    val config = resources.configuration
+    config.setLocale(locale)
+    resources.updateConfiguration(config, resources.displayMetrics)
+    if (context is android.app.Activity) {
+        context.recreate()
     }
 }

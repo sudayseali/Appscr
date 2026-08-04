@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">ЭКО ОПТИМИЗАТОР ЭКРАНА</string>
+    <string name="energy_saved">Сохраненная энергия</string>
+    <string name="screen_off">Экран выключен</string>
+    <string name="display_settings">Настройки дисплея</string>
+    <string name="always_on_display">Всегда на экране (AOD)</string>
+    <string name="oled_pixel_shift">Сдвиг пикселей OLED</string>
+    <string name="privacy_tint">Оттенок конфиденциальности</string>
+    <string name="smart_triggers">Умные триггеры</string>
+    <string name="pocket_mode">Карманный режим</string>
+    <string name="sleep_timer">Таймер сна</string>
+    <string name="floating_action_button">Плавающая кнопка</string>
+    <string name="floating_lock_style">Стиль плавающего замка</string>
+    <string name="floating_lock_size">Размер плавающего замка</string>
+    <string name="wake_gesture">Жест пробуждения</string>
+    <string name="security">Безопасность</string>
+    <string name="enable_biometric">Включить биометрическую аутентификацию</string>
+    <string name="usage_limits">Лимиты использования</string>
+    <string name="overlay_permission">Требуется разрешение на наложение</string>
+    <string name="tap_to_grant">Нажмите, чтобы разрешить фоновый доступ.</string>
+    <string name="start">Начать</string>
+    <string name="stop">Остановить</string>
+</resources>

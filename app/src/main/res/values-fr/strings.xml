@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">OPTIMISEUR D\'ÉCRAN ÉCO</string>
+    <string name="energy_saved">Énergie économisée</string>
+    <string name="screen_off">Écran éteint</string>
+    <string name="display_settings">Paramètres d\'affichage</string>
+    <string name="always_on_display">Écran toujours allumé</string>
+    <string name="oled_pixel_shift">Décalage de pixels OLED</string>
+    <string name="privacy_tint">Teinte de confidentialité</string>
+    <string name="smart_triggers">Déclencheurs intelligents</string>
+    <string name="pocket_mode">Mode poche</string>
+    <string name="sleep_timer">Minuterie de sommeil</string>
+    <string name="floating_action_button">Bouton d\'action flottant</string>
+    <string name="floating_lock_style">Style de verrouillage flottant</string>
+    <string name="floating_lock_size">Taille du verrouillage flottant</string>
+    <string name="wake_gesture">Geste de réveil</string>
+    <string name="security">Sécurité</string>
+    <string name="enable_biometric">Activer l\'authentification biométrique</string>
+    <string name="usage_limits">Limites d\'utilisation</string>
+    <string name="overlay_permission">Permission de superposition requise</string>
+    <string name="tap_to_grant">Appuyez pour accorder l\'accès en arrière-plan.</string>
+    <string name="start">Démarrer</string>
+    <string name="stop">Arrêter</string>
+</resources>

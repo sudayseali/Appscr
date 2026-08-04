@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">ایکو سکرین آپٹیمائزر</string>
+    <string name="energy_saved">بچائی گئی توانائی</string>
+    <string name="screen_off">سکرین بند</string>
+    <string name="display_settings">ڈسپلے سیٹنگز</string>
+    <string name="always_on_display">ہمیشہ آن ڈسپلے</string>
+    <string name="oled_pixel_shift">OLED پکسل شفٹ</string>
+    <string name="privacy_tint">رازداری کا رنگ</string>
+    <string name="smart_triggers">سمارٹ ٹرگرز</string>
+    <string name="pocket_mode">پاکٹ موڈ</string>
+    <string name="sleep_timer">سلیپ ٹائمر</string>
+    <string name="floating_action_button">فلوٹنگ ایکشن بٹن</string>
+    <string name="floating_lock_style">فلوٹنگ لاک اسٹائل</string>
+    <string name="floating_lock_size">فلوٹنگ لاک سائز</string>
+    <string name="wake_gesture">ویک اشارہ</string>
+    <string name="security">سیکیورٹی</string>
+    <string name="enable_biometric">بایومیٹرک تصدیق کو فعال کریں</string>
+    <string name="usage_limits">استعمال کی حدود</string>
+    <string name="overlay_permission">اوورلے کی اجازت درکار ہے</string>
+    <string name="tap_to_grant">بیک گراؤنڈ تک رسائی کے لیے ٹیپ کریں۔</string>
+    <string name="start">شروع کریں</string>
+    <string name="stop">روکیں</string>
+</resources>

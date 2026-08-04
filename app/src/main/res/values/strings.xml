@@ -1,3 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">ECO SCREEN OPTIMIZER</string>
+    <string name="energy_saved">Energy Saved</string>
+    <string name="screen_off">Screen Off</string>
+    <string name="display_settings">Display Settings</string>
+    <string name="always_on_display">Always-On Display</string>
+    <string name="oled_pixel_shift">OLED Pixel Shift</string>
+    <string name="privacy_tint">Privacy Tint</string>
+    <string name="smart_triggers">Smart Triggers</string>
+    <string name="pocket_mode">Pocket Mode</string>
+    <string name="sleep_timer">Sleep Timer (Battery Saver)</string>
+    <string name="floating_action_button">Floating Action Button</string>
+    <string name="floating_lock_style">Floating Lock Style</string>
+    <string name="floating_lock_size">Floating Lock Size</string>
+    <string name="wake_gesture">Wake Gesture (Taps)</string>
+    <string name="security">Security</string>
+    <string name="enable_biometric">Enable Biometric Authentication</string>
+    <string name="usage_limits">Usage Limits (Focus Mode)</string>
+    <string name="overlay_permission">Overlay Permission Required</string>
+    <string name="tap_to_grant">Tap to grant access for background functionality.</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
 </resources>

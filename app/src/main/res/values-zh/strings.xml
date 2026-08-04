@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">生态屏幕优化器</string>
+    <string name="energy_saved">节省的能源</string>
+    <string name="screen_off">关闭屏幕</string>
+    <string name="display_settings">显示设置</string>
+    <string name="always_on_display">息屏显示</string>
+    <string name="oled_pixel_shift">OLED 像素偏移</string>
+    <string name="privacy_tint">隐私色调</string>
+    <string name="smart_triggers">智能触发器</string>
+    <string name="pocket_mode">口袋模式</string>
+    <string name="sleep_timer">睡眠定时器</string>
+    <string name="floating_action_button">悬浮按钮</string>
+    <string name="floating_lock_style">悬浮锁样式</string>
+    <string name="floating_lock_size">悬浮锁大小</string>
+    <string name="wake_gesture">唤醒手势</string>
+    <string name="security">安全</string>
+    <string name="enable_biometric">启用生物识别</string>
+    <string name="usage_limits">使用限制</string>
+    <string name="overlay_permission">需要悬浮窗权限</string>
+    <string name="tap_to_grant">点击以授予后台访问权限。</string>
+    <string name="start">开始</string>
+    <string name="stop">停止</string>
+</resources>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">WANAAGJIYAHA MURAAYADA ECO</string>
+    <string name="energy_saved">Tamarta La Keydiyay</string>
+    <string name="screen_off">Muraayada Dansan</string>
+    <string name="display_settings">Dejinta Muuqaalka</string>
+    <string name="always_on_display">Muuqaalka Had iyo jeer-Daaran</string>
+    <string name="oled_pixel_shift">Wareejinta Pixel ee OLED</string>
+    <string name="privacy_tint">Shaandheynta Khaaska ah</string>
+    <string name="smart_triggers">Ficilada Casriga ah</string>
+    <string name="pocket_mode">Habka Jeebka</string>
+    <string name="sleep_timer">Waqtiga Hurdada</string>
+    <string name="floating_action_button">Batoonka Ficilka Sabeynaya</string>
+    <string name="floating_lock_style">Qaabka Qufulka Sabeynaya</string>
+    <string name="floating_lock_size">Xajmiga Qufulka Sabeynaya</string>
+    <string name="wake_gesture">Tilmaamaha Toosinta</string>
+    <string name="security">Amniga</string>
+    <string name="enable_biometric">Daar Aqoonsiga Nafleyda</string>
+    <string name="usage_limits">Xaddidaadda Isticmaalka</string>
+    <string name="overlay_permission">Ogolaanshaha Dusha ayaa Loo Baahan Yahay</string>
+    <string name="tap_to_grant">Taabo si aad u siiso marin u helka asalka.</string>
+    <string name="start">Bilow</string>
+    <string name="stop">Jooji</string>
+</resources>

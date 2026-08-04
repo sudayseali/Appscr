@@ -166,7 +166,7 @@ class BlackScreenService : Service() {
             return START_NOT_STICKY
         }
         
-        if (intent?.action == "BIOMETRIC_SUCCESS" || intent?.action == "UNLOCK_SCREEN") {
+        if (intent?.action == "BIOMETRIC_SUCCESS") {
             smartAutomationManager.handleManualDismiss()
             showFloatingBubbleInternal()
             return START_STICKY
@@ -271,13 +271,7 @@ class BlackScreenService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (isClick) {
-                        // Launch AdActivity for 3 ads before activating
-                        val intent = android.content.Intent(this@BlackScreenService, AdLauncherActivity::class.java).apply {
-                            putExtra("ADS_COUNT", 3)
-                            putExtra("ON_COMPLETE_ACTION", "START_BLACK_SCREEN")
-                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        startActivity(intent)
+                        smartAutomationManager.handleUserActivation()
                     }
                     true
                 }
@@ -372,13 +366,8 @@ class BlackScreenService : Service() {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                         startActivity(intent)
                     } else {
-                        // Launch AdActivity for 3 ads before unlocking
-                        val intent = Intent(this@BlackScreenService, AdLauncherActivity::class.java).apply {
-                            putExtra("ADS_COUNT", 3)
-                            putExtra("ON_COMPLETE_ACTION", "UNLOCK_SCREEN")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        }
-                        startActivity(intent)
+                        smartAutomationManager.handleManualDismiss()
+                        showFloatingBubbleInternal()
                     }
                 }
             }

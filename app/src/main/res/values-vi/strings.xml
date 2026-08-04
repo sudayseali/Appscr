@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">TRÌNH TỐI ƯU HÓA MÀN HÌNH ECO</string>
+    <string name="energy_saved">Năng lượng đã tiết kiệm</string>
+    <string name="screen_off">Màn hình Tắt</string>
+    <string name="display_settings">Cài đặt hiển thị</string>
+    <string name="always_on_display">Màn hình luôn bật</string>
+    <string name="oled_pixel_shift">Dịch chuyển pixel OLED</string>
+    <string name="privacy_tint">Sắc thái bảo mật</string>
+    <string name="smart_triggers">Trình kích hoạt thông minh</string>
+    <string name="pocket_mode">Chế độ bỏ túi</string>
+    <string name="sleep_timer">Hẹn giờ ngủ</string>
+    <string name="floating_action_button">Nút hành động nổi</string>
+    <string name="floating_lock_style">Kiểu khóa nổi</string>
+    <string name="floating_lock_size">Kích thước khóa nổi</string>
+    <string name="wake_gesture">Cử chỉ đánh thức</string>
+    <string name="security">Bảo mật</string>
+    <string name="enable_biometric">Bật xác thực sinh trắc học</string>
+    <string name="usage_limits">Giới hạn sử dụng</string>
+    <string name="overlay_permission">Cần quyền hiển thị trên các ứng dụng khác</string>
+    <string name="tap_to_grant">Nhấn để cấp quyền truy cập nền.</string>
+    <string name="start">Bắt đầu</string>
+    <string name="stop">Dừng</string>
+</resources>
