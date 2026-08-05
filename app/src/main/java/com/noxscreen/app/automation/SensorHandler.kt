@@ -111,6 +111,24 @@ class SensorHandler(context: Context) : SensorEventListener {
                     lastMovementTime = System.currentTimeMillis()
                     onMotionDetected?.invoke()
                 }
+
+                if (enableShake && delta > shakeThreshold) {
+                    onShakeDetected?.invoke()
+                }
+
+                if (enableFaceDown) {
+                    val isFaceDownNow = z < -8.0f && abs(x) < 4.0f && abs(y) < 4.0f
+                    if (isFaceDownNow) {
+                        if (faceDownStartTime == 0L) {
+                            faceDownStartTime = System.currentTimeMillis()
+                        } else if (System.currentTimeMillis() - faceDownStartTime > 500L) {
+                            onFaceDownDetected?.invoke()
+                            faceDownStartTime = 0L // Reset
+                        }
+                    } else {
+                        faceDownStartTime = 0L
+                    }
+                }
             }
         }
     }

@@ -41,6 +41,8 @@ class AutomationSettings(private val context: Context) {
             timerDurationSeconds = prefs.getInt("timer_duration_sec", 10),
             isPocketModeEnabled = prefs.getBoolean("is_pocket_mode_enabled", false),
             isMotionDetectionEnabled = prefs.getBoolean("is_motion_detection_enabled", false),
+            isFlipToSleepEnabled = prefs.getBoolean("is_flip_to_sleep_enabled", false),
+            isShakeToWakeEnabled = prefs.getBoolean("is_shake_to_wake_enabled", false),
             stationaryDurationSeconds = prefs.getInt("stationary_duration_sec", 10),
             isSleepTimerEnabled = prefs.getBoolean("is_sleep_timer_enabled", false),
             sleepTimerDurationMinutes = prefs.getInt("sleep_timer_duration_min", 30),
@@ -55,6 +57,7 @@ class AutomationSettings(private val context: Context) {
             hideFloatingButton = prefs.getBoolean("hide_floating_button", false),
             reduceBrightness = prefs.getBoolean("reduce_brightness", false),
             oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", true),
+            isSkipUnlockScreenEnabled = prefs.getBoolean("is_skip_unlock_screen_enabled", false),
             isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false),
             isUsageLimitsEnabled = prefs.getBoolean("is_usage_limits_enabled", false),
             usageLimitDurationMinutes = prefs.getInt("usage_limit_duration_min", 15),
@@ -69,6 +72,8 @@ class AutomationSettings(private val context: Context) {
             .putInt("timer_duration_sec", config.timerDurationSeconds)
             .putBoolean("is_pocket_mode_enabled", config.isPocketModeEnabled)
             .putBoolean("is_motion_detection_enabled", config.isMotionDetectionEnabled)
+            .putBoolean("is_flip_to_sleep_enabled", config.isFlipToSleepEnabled)
+            .putBoolean("is_shake_to_wake_enabled", config.isShakeToWakeEnabled)
             .putInt("stationary_duration_sec", config.stationaryDurationSeconds)
             .putBoolean("is_sleep_timer_enabled", config.isSleepTimerEnabled)
             .putInt("sleep_timer_duration_min", config.sleepTimerDurationMinutes)
@@ -83,6 +88,7 @@ class AutomationSettings(private val context: Context) {
             .putBoolean("hide_floating_button", config.hideFloatingButton)
             .putBoolean("reduce_brightness", config.reduceBrightness)
             .putBoolean("oled_burn_in_protection", config.oledBurnInProtection)
+            .putBoolean("is_skip_unlock_screen_enabled", config.isSkipUnlockScreenEnabled)
             .putBoolean("is_biometric_enabled", config.isBiometricEnabled)
             .putBoolean("is_usage_limits_enabled", config.isUsageLimitsEnabled)
             .putInt("usage_limit_duration_min", config.usageLimitDurationMinutes)

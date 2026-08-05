@@ -66,7 +66,8 @@ class BlackScreenService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val timeUpdater = object : Runnable {
         override fun run() {
-            if (isUnlockScreenVisible) {
+            val config = smartAutomationManager.settings.getConfig()
+            if (isUnlockScreenVisible || config.isAodEnabled) {
                 updateAodInfo()
                 handler.postDelayed(this, 1000)
             }
@@ -75,9 +76,16 @@ class BlackScreenService : Service() {
     private val resetToBlackRunnable = Runnable {
         isUnlockScreenVisible = false
         tapCount = 0
-        aodContainer?.visibility = View.GONE
+        val config = smartAutomationManager.settings.getConfig()
+        if (config.isAodEnabled) {
+            aodContainer?.visibility = View.VISIBLE
+            updateAodInfo()
+            handler.post(timeUpdater)
+        } else {
+            aodContainer?.visibility = View.GONE
+            handler.removeCallbacks(timeUpdater)
+        }
         unlockButton?.visibility = View.GONE
-        handler.removeCallbacks(timeUpdater)
     }
     
     private var blackoutStartTime = 0L
@@ -94,6 +102,10 @@ class BlackScreenService : Service() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.noxscreen.app.SETTINGS_UPDATED") {
                 updateFloatingBubbleStyle()
+                if (::smartAutomationManager.isInitialized) {
+                    smartAutomationManager.stopSensors()
+                    smartAutomationManager.startSensors()
+                }
             }
         }
     }
@@ -177,12 +189,19 @@ class BlackScreenService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        isRunning = true
-        updateTile(this)
         if (intent?.action == "STOP_SERVICE") {
+            isRunning = false
+            updateTile(this)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                stopForeground(true)
+            }
             stopSelf()
             return START_NOT_STICKY
         }
+        isRunning = true
+        updateTile(this)
         
         if (intent?.action == "BIOMETRIC_SUCCESS") {
             smartAutomationManager.handleManualDismiss()
@@ -314,6 +333,18 @@ class BlackScreenService : Service() {
         aodClockTextView?.text = timeSdf.format(now)
         aodDateTextView?.text = dateSdf.format(now)
         aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
+        
+        val config = smartAutomationManager.settings.getConfig()
+        if (config.oledBurnInProtection) {
+            val random = java.util.Random()
+            val xOffset = random.nextInt(31) - 15 // -15 to +15 pixels
+            val yOffset = random.nextInt(31) - 15
+            aodContainer?.translationX = xOffset.toFloat()
+            aodContainer?.translationY = yOffset.toFloat()
+        } else {
+            aodContainer?.translationX = 0f
+            aodContainer?.translationY = 0f
+        }
     }
 
     private fun getCurrentFormattedTime(): String {
@@ -419,9 +450,10 @@ class BlackScreenService : Service() {
                             tapCount = 0
                             
                             aodContainer?.visibility = View.VISIBLE
-                            unlockButton?.visibility = View.VISIBLE
                             updateAodInfo()
                             handler.post(timeUpdater)
+                            
+                            unlockButton?.visibility = View.VISIBLE
                             
                             handler.removeCallbacks(resetToBlackRunnable)
                             handler.postDelayed(resetToBlackRunnable, 10000)
@@ -513,9 +545,15 @@ class BlackScreenService : Service() {
                 // Always start pure black
                 isUnlockScreenVisible = false
                 tapCount = 0
-                aodContainer?.visibility = View.GONE
+                if (config.isAodEnabled) {
+                    aodContainer?.visibility = View.VISIBLE
+                    updateAodInfo()
+                    handler.post(timeUpdater)
+                } else {
+                    aodContainer?.visibility = View.GONE
+                    handler.removeCallbacks(timeUpdater)
+                }
                 unlockButton?.visibility = View.GONE
-                handler.removeCallbacks(timeUpdater)
                 handler.removeCallbacks(resetToBlackRunnable)
 
                 val params = WindowManager.LayoutParams(
