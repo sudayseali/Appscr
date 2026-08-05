@@ -36,6 +36,17 @@ class BlackScreenService : Service() {
     companion object {
         var isRunning = false
             private set
+            
+        fun updateTile(context: android.content.Context) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                android.service.quicksettings.TileService.requestListeningState(
+                    context, 
+                    android.content.ComponentName(context, NoxTileService::class.java)
+                )
+            }
+            // Update widget as well
+            NoxWidgetProvider.updateAllWidgets(context)
+        }
     }
 
 
@@ -167,6 +178,7 @@ class BlackScreenService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         isRunning = true
+        updateTile(this)
         if (intent?.action == "STOP_SERVICE") {
             stopSelf()
             return START_NOT_STICKY
@@ -399,16 +411,21 @@ class BlackScreenService : Service() {
                     
                     val config = smartAutomationManager.settings.getConfig()
                     if (tapCount >= config.tapsToWake) {
-                        isUnlockScreenVisible = true
-                        tapCount = 0
-                        
-                        aodContainer?.visibility = View.VISIBLE
-                        unlockButton?.visibility = View.VISIBLE
-                        updateAodInfo()
-                        handler.post(timeUpdater)
-                        
-                        handler.removeCallbacks(resetToBlackRunnable)
-                        handler.postDelayed(resetToBlackRunnable, 10000)
+                        if (config.isSkipUnlockScreenEnabled) {
+                            smartAutomationManager.handleManualDismiss()
+                            showFloatingBubbleInternal()
+                        } else {
+                            isUnlockScreenVisible = true
+                            tapCount = 0
+                            
+                            aodContainer?.visibility = View.VISIBLE
+                            unlockButton?.visibility = View.VISIBLE
+                            updateAodInfo()
+                            handler.post(timeUpdater)
+                            
+                            handler.removeCallbacks(resetToBlackRunnable)
+                            handler.postDelayed(resetToBlackRunnable, 10000)
+                        }
                     }
                 }
             }
@@ -547,6 +564,7 @@ class BlackScreenService : Service() {
 
     override fun onDestroy() {
         isRunning = false
+        updateTile(this)
         super.onDestroy()
         usageLimitMonitor.stopMonitoring()
         try {

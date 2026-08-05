@@ -22,6 +22,33 @@ class SmartAutomationManager(
     }
 
     private fun setupSensorCallbacks() {
+        sensorHandler.onFaceDownDetected = {
+            val config = settings.getConfig()
+            if (config.isFlipToSleepEnabled) {
+                if (timerHandler.isTimerRunning) {
+                    timerHandler.cancelTimer()
+                }
+                triggeredBySensor = true
+                onTriggerOverlay(true)
+            }
+        }
+
+        sensorHandler.onShakeDetected = {
+            val config = settings.getConfig()
+            if (config.isShakeToWakeEnabled) {
+                // If the screen is black, wake it up
+                if (triggeredBySensor) {
+                    triggeredBySensor = false
+                    stopSleepTimer()
+                    onRemoveOverlay()
+                } else {
+                    // Always try to remove overlay on shake if possible
+                    triggeredBySensor = false
+                    stopSleepTimer()
+                    onRemoveOverlay()
+                }
+            }
+        }
         sensorHandler.onProximityChanged = { isNear ->
             val config = settings.getConfig()
             if (config.isPocketModeEnabled) {
@@ -101,11 +128,13 @@ class SmartAutomationManager(
 
     fun startSensors() {
         val config = settings.getConfig()
-        if (config.isPocketModeEnabled || config.isMotionDetectionEnabled) {
+        if (config.isPocketModeEnabled || config.isMotionDetectionEnabled || config.isFlipToSleepEnabled || config.isShakeToWakeEnabled) {
             sensorHandler.start(
                 enableProximity = config.isPocketModeEnabled,
                 enableMotion = config.isMotionDetectionEnabled,
-                stationarySec = config.stationaryDurationSeconds
+                stationarySec = config.stationaryDurationSeconds,
+                enableFaceDown = config.isFlipToSleepEnabled,
+                enableShake = config.isShakeToWakeEnabled
             )
         }
     }

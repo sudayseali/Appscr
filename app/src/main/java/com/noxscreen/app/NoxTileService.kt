@@ -19,6 +19,14 @@ class NoxTileService : TileService() {
         super.onClick()
         val isRunning = BlackScreenService.isRunning
         
+        // Optimistically update the tile state
+        val tile = qsTile
+        if (tile != null) {
+            tile.state = if (isRunning) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
+            tile.label = if (isRunning) "Start NoxScreen" else "Stop NoxScreen"
+            tile.updateTile()
+        }
+        
         if (isRunning) {
             val intent = Intent(this, BlackScreenService::class.java).apply {
                 action = "STOP_SERVICE"
@@ -32,7 +40,6 @@ class NoxTileService : TileService() {
                 startService(intent)
             }
         }
-        updateTileState()
     }
 
     private fun updateTileState() {

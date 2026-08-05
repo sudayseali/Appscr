@@ -305,6 +305,9 @@ fun ZenithApp(
                 ZenithSwitchRow(stringResource(R.string.privacy_tint), "Dim screen instead of total black", autoConfig.isDarkTintEnabled) { 
                     autoConfig = autoConfig.copy(isDarkTintEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
+                ZenithSwitchRow(stringResource(R.string.skip_unlock_screen), "Directly unlock the screen on tap", autoConfig.isSkipUnlockScreenEnabled) { 
+                    autoConfig = autoConfig.copy(isSkipUnlockScreenEnabled = it); automationSettings.updateConfig(autoConfig) 
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -316,6 +319,14 @@ fun ZenithApp(
             ) {
                 ZenithSwitchRow(stringResource(R.string.pocket_mode), "Auto-lock in pocket", autoConfig.isPocketModeEnabled) { 
                     autoConfig = autoConfig.copy(isPocketModeEnabled = it); automationSettings.updateConfig(autoConfig) 
+                }
+                
+                ZenithSwitchRow(stringResource(R.string.flip_to_sleep), "Turn face down to lock", autoConfig.isFlipToSleepEnabled) { 
+                    autoConfig = autoConfig.copy(isFlipToSleepEnabled = it); automationSettings.updateConfig(autoConfig) 
+                }
+                
+                ZenithSwitchRow(stringResource(R.string.shake_to_wake), "Shake device to unlock", autoConfig.isShakeToWakeEnabled) { 
+                    autoConfig = autoConfig.copy(isShakeToWakeEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
                 
                 // Sleep Timer (Battery Saver)

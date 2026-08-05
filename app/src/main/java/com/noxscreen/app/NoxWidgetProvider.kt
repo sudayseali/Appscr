@@ -17,8 +17,24 @@ class NoxWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        fun updateAllWidgets(context: Context) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = android.content.ComponentName(context, NoxWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            for (appWidgetId in appWidgetIds) {
+                updateAppWidget(context, appWidgetManager, appWidgetId)
+            }
+        }
+
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
+            
+            val isRunning = BlackScreenService.isRunning
+            if (isRunning) {
+                views.setImageViewResource(R.id.widget_button, R.drawable.ic_power)
+            } else {
+                views.setImageViewResource(R.id.widget_button, R.drawable.ic_power_inactive)
+            }
 
             val intent = Intent(context, WidgetActionReceiver::class.java)
             intent.action = "TOGGLE_NOX_SCREEN"

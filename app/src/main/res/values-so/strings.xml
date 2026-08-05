@@ -24,4 +24,9 @@
     <string name="stop">Jooji</string>
     <string name="language">Luuqadda</string>
     <string name="select_language">Dooro luuqad</string>
+
+    <string name="flip_to_sleep">Geddi si uu u seexdo (Flip to Sleep)</string>
+    <string name="shake_to_wake">Rux si uu u tooso (Shake to Wake)</string>
+
+    <string name="skip_unlock_screen">Toos u fur shaashada (Skip Unlock)</string>
 </resources>

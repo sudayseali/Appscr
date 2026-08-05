@@ -19,6 +19,8 @@ class SensorHandler(context: Context) : SensorEventListener {
     var onProximityChanged: ((isNear: Boolean) -> Unit)? = null
     var onStationaryDetected: (() -> Unit)? = null
     var onMotionDetected: (() -> Unit)? = null
+    var onFaceDownDetected: (() -> Unit)? = null
+    var onShakeDetected: (() -> Unit)? = null
 
     private var isProximityActive = false
     private var isMotionActive = false
@@ -30,11 +32,17 @@ class SensorHandler(context: Context) : SensorEventListener {
 
     private var lastAccelMagnitude = 9.8f
     private val movementThreshold = 0.8f // m/s² change threshold
+    private val shakeThreshold = 12.0f // m/s² change threshold for shake
+    private var enableFaceDown = false
+    private var enableShake = false
+    private var faceDownStartTime = 0L
 
-    fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10) {
+    fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableFaceDown: Boolean = false, enableShake: Boolean = false) {
         stop()
         this.stationaryDurationMs = stationarySec * 1000L
         this.lastMovementTime = System.currentTimeMillis()
+        this.enableFaceDown = enableFaceDown
+        this.enableShake = enableShake
 
         if (sensorManager == null) return
 
@@ -46,7 +54,7 @@ class SensorHandler(context: Context) : SensorEventListener {
             )
         }
 
-        if (enableMotion && accelerometer != null) {
+        if ((enableMotion || enableFaceDown || enableShake) && accelerometer != null) {
             isMotionActive = sensorManager.registerListener(
                 this,
                 accelerometer,

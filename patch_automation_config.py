@@ -1,34 +1,37 @@
-import sys
-
-with open('app/src/main/java/com/noxscreen/app/automation/AutomationSettings.kt', 'r') as f:
+with open("app/src/main/java/com/noxscreen/app/automation/AutomationSettings.kt", "r", encoding="utf-8") as f:
     content = f.read()
 
-target1 = """    val isBiometricEnabled: Boolean = false
-)"""
-replacement1 = """    val isBiometricEnabled: Boolean = false,
-    val isUsageLimitsEnabled: Boolean = false,
-    val usageLimitDurationMinutes: Int = 15,
-    val blockedApps: Set<String> = emptySet()
-)"""
-content = content.replace(target1, replacement1)
+target = """    val isPocketModeEnabled: Boolean = false,
+    val isMotionDetectionEnabled: Boolean = false,
+    val stationaryDurationSeconds: Int = 10,"""
+replacement = """    val isPocketModeEnabled: Boolean = false,
+    val isMotionDetectionEnabled: Boolean = false,
+    val isFlipToSleepEnabled: Boolean = false,
+    val isShakeToWakeEnabled: Boolean = false,
+    val stationaryDurationSeconds: Int = 10,"""
 
-target2 = """            isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false)
-        )"""
-replacement2 = """            isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false),
-            isUsageLimitsEnabled = prefs.getBoolean("is_usage_limits_enabled", false),
-            usageLimitDurationMinutes = prefs.getInt("usage_limit_duration_min", 15),
-            blockedApps = prefs.getStringSet("blocked_apps", emptySet()) ?: emptySet()
-        )"""
-content = content.replace(target2, replacement2)
+if 'isFlipToSleepEnabled' not in content:
+    content = content.replace(target, replacement)
 
-target3 = """            .putBoolean("is_biometric_enabled", config.isBiometricEnabled)
-            .apply()"""
-replacement3 = """            .putBoolean("is_biometric_enabled", config.isBiometricEnabled)
-            .putBoolean("is_usage_limits_enabled", config.isUsageLimitsEnabled)
-            .putInt("usage_limit_duration_min", config.usageLimitDurationMinutes)
-            .putStringSet("blocked_apps", config.blockedApps)
-            .apply()"""
-content = content.replace(target3, replacement3)
+target2 = """            isMotionDetectionEnabled = prefs.getBoolean("isMotionDetectionEnabled", false),
+            stationaryDurationSeconds = prefs.getInt("stationaryDurationSeconds", 10),"""
+replacement2 = """            isMotionDetectionEnabled = prefs.getBoolean("isMotionDetectionEnabled", false),
+            isFlipToSleepEnabled = prefs.getBoolean("isFlipToSleepEnabled", false),
+            isShakeToWakeEnabled = prefs.getBoolean("isShakeToWakeEnabled", false),
+            stationaryDurationSeconds = prefs.getInt("stationaryDurationSeconds", 10),"""
 
-with open('app/src/main/java/com/noxscreen/app/automation/AutomationSettings.kt', 'w') as f:
+if 'isFlipToSleepEnabled = prefs' not in content:
+    content = content.replace(target2, replacement2)
+
+target3 = """            putBoolean("isMotionDetectionEnabled", config.isMotionDetectionEnabled)
+            putInt("stationaryDurationSeconds", config.stationaryDurationSeconds)"""
+replacement3 = """            putBoolean("isMotionDetectionEnabled", config.isMotionDetectionEnabled)
+            putBoolean("isFlipToSleepEnabled", config.isFlipToSleepEnabled)
+            putBoolean("isShakeToWakeEnabled", config.isShakeToWakeEnabled)
+            putInt("stationaryDurationSeconds", config.stationaryDurationSeconds)"""
+
+if 'putBoolean("isFlipToSleepEnabled"' not in content:
+    content = content.replace(target3, replacement3)
+
+with open("app/src/main/java/com/noxscreen/app/automation/AutomationSettings.kt", "w", encoding="utf-8") as f:
     f.write(content)
