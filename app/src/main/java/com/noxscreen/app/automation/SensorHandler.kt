@@ -35,7 +35,8 @@ class SensorHandler(context: Context) : SensorEventListener {
     private val shakeThreshold = 12.0f // m/s² change threshold for shake
     private var enableFaceDown = false
     private var enableShake = false
-    private var faceDownStartTime = 0L
+    private var isFaceDownTriggered = false
+    private var faceDownCheckRunnable: Runnable? = null
 
     fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableFaceDown: Boolean = false, enableShake: Boolean = false) {
         stop()
@@ -72,6 +73,8 @@ class SensorHandler(context: Context) : SensorEventListener {
         isMotionActive = false
         stationaryCheckRunnable?.let { mainHandler.removeCallbacks(it) }
         stationaryCheckRunnable = null
+        faceDownCheckRunnable?.let { mainHandler.removeCallbacks(it) }
+        faceDownCheckRunnable = null
     }
 
     private fun scheduleStationaryCheck() {
@@ -117,16 +120,20 @@ class SensorHandler(context: Context) : SensorEventListener {
                 }
 
                 if (enableFaceDown) {
-                    val isFaceDownNow = z < -8.0f && abs(x) < 4.0f && abs(y) < 4.0f
+                    val isFaceDownNow = z < -7.0f && abs(x) < 5.0f && abs(y) < 5.0f
                     if (isFaceDownNow) {
-                        if (faceDownStartTime == 0L) {
-                            faceDownStartTime = System.currentTimeMillis()
-                        } else if (System.currentTimeMillis() - faceDownStartTime > 500L) {
-                            onFaceDownDetected?.invoke()
-                            faceDownStartTime = 0L // Reset
+                        if (!isFaceDownTriggered && faceDownCheckRunnable == null) {
+                            faceDownCheckRunnable = Runnable {
+                                onFaceDownDetected?.invoke()
+                                isFaceDownTriggered = true
+                                faceDownCheckRunnable = null
+                            }
+                            mainHandler.postDelayed(faceDownCheckRunnable!!, 500L)
                         }
                     } else {
-                        faceDownStartTime = 0L
+                        faceDownCheckRunnable?.let { mainHandler.removeCallbacks(it) }
+                        faceDownCheckRunnable = null
+                        isFaceDownTriggered = false
                     }
                 }
             }

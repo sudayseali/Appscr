@@ -539,7 +539,7 @@ class BlackScreenService : Service() {
             if (blackoutView?.parent == null) {
                 val config = smartAutomationManager.settings.getConfig()
                 blackoutView?.setBackgroundColor(
-                    if (config.isDarkTintEnabled) Color.parseColor("#ED0C0C12") else Color.BLACK
+                    if (config.isDarkTintEnabled) Color.parseColor("#E6000000") else Color.BLACK
                 )
 
                 // Always start pure black
@@ -563,10 +563,10 @@ class BlackScreenService : Service() {
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    PixelFormat.OPAQUE
+                    if (config.isDarkTintEnabled) PixelFormat.TRANSLUCENT else PixelFormat.OPAQUE
                 ).apply {
-                    screenBrightness = 0f
-                    buttonBrightness = 0f
+                    screenBrightness = if (config.isDarkTintEnabled) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else 0f
+                    buttonBrightness = if (config.isDarkTintEnabled) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else 0f
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                     }
