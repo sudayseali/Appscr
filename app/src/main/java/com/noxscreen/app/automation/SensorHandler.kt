@@ -36,7 +36,9 @@ class SensorHandler(context: Context) : SensorEventListener {
     private var enableFaceDown = false
     private var enableShake = false
     private var isFaceDownTriggered = false
-    private var faceDownCheckRunnable: Runnable? = null
+    private var faceDownStartTime = 0L
+    private var proximityRunnable: Runnable? = null
+    private var isProximityTriggered = false
 
     fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableFaceDown: Boolean = false, enableShake: Boolean = false) {
         stop()
@@ -61,7 +63,9 @@ class SensorHandler(context: Context) : SensorEventListener {
                 accelerometer,
                 SensorManager.SENSOR_DELAY_NORMAL
             )
-            scheduleStationaryCheck()
+            if (enableMotion) {
+                scheduleStationaryCheck()
+            }
         }
     }
 
@@ -73,8 +77,6 @@ class SensorHandler(context: Context) : SensorEventListener {
         isMotionActive = false
         stationaryCheckRunnable?.let { mainHandler.removeCallbacks(it) }
         stationaryCheckRunnable = null
-        faceDownCheckRunnable?.let { mainHandler.removeCallbacks(it) }
-        faceDownCheckRunnable = null
     }
 
     private fun scheduleStationaryCheck() {
@@ -99,8 +101,24 @@ class SensorHandler(context: Context) : SensorEventListener {
             Sensor.TYPE_PROXIMITY -> {
                 val distance = event.values[0]
                 val maxRange = event.sensor.maximumRange
-                val isNear = distance < maxRange
-                onProximityChanged?.invoke(isNear)
+                val isNear = distance < maxRange && distance < 5.0f
+                
+                if (isNear) {
+                    if (!isProximityTriggered) {
+                        proximityRunnable?.let { mainHandler.removeCallbacks(it) }
+                        proximityRunnable = Runnable {
+                            isProximityTriggered = true
+                            onProximityChanged?.invoke(true)
+                        }
+                        mainHandler.postDelayed(proximityRunnable!!, 500L)
+                    }
+                } else {
+                    proximityRunnable?.let { mainHandler.removeCallbacks(it) }
+                    if (isProximityTriggered) {
+                        isProximityTriggered = false
+                        onProximityChanged?.invoke(false)
+                    }
+                }
             }
             Sensor.TYPE_ACCELEROMETER -> {
                 val x = event.values[0]
@@ -120,20 +138,22 @@ class SensorHandler(context: Context) : SensorEventListener {
                 }
 
                 if (enableFaceDown) {
-                    val isFaceDownNow = z < -7.0f && abs(x) < 5.0f && abs(y) < 5.0f
+                    val isFaceDownNow = z < -5.0f && abs(x) < 6.0f && abs(y) < 6.0f
                     if (isFaceDownNow) {
-                        if (!isFaceDownTriggered && faceDownCheckRunnable == null) {
-                            faceDownCheckRunnable = Runnable {
+                        if (!isFaceDownTriggered) {
+                            if (faceDownStartTime == 0L) {
+                                faceDownStartTime = System.currentTimeMillis()
+                            } else if (System.currentTimeMillis() - faceDownStartTime > 300L) {
                                 onFaceDownDetected?.invoke()
                                 isFaceDownTriggered = true
-                                faceDownCheckRunnable = null
                             }
-                            mainHandler.postDelayed(faceDownCheckRunnable!!, 500L)
                         }
                     } else {
-                        faceDownCheckRunnable?.let { mainHandler.removeCallbacks(it) }
-                        faceDownCheckRunnable = null
-                        isFaceDownTriggered = false
+                        // Allow small noise without immediately resetting
+                        if (z > -2.0f || abs(x) > 8.0f || abs(y) > 8.0f) {
+                            faceDownStartTime = 0L
+                            isFaceDownTriggered = false
+                        }
                     }
                 }
             }

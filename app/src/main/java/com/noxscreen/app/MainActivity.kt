@@ -302,9 +302,7 @@ fun ZenithApp(
                 ZenithSwitchRow(stringResource(R.string.oled_pixel_shift), "Prevent screen burn-in", autoConfig.oledBurnInProtection) { 
                     autoConfig = autoConfig.copy(oledBurnInProtection = it); automationSettings.updateConfig(autoConfig) 
                 }
-                ZenithSwitchRow(stringResource(R.string.privacy_tint), "Dim screen instead of total black", autoConfig.isDarkTintEnabled) { 
-                    autoConfig = autoConfig.copy(isDarkTintEnabled = it); automationSettings.updateConfig(autoConfig) 
-                }
+
                 ZenithSwitchRow(stringResource(R.string.skip_unlock_screen), "Directly unlock the screen on tap", autoConfig.isSkipUnlockScreenEnabled) { 
                     autoConfig = autoConfig.copy(isSkipUnlockScreenEnabled = it); automationSettings.updateConfig(autoConfig) 
                 }
@@ -330,27 +328,6 @@ fun ZenithApp(
                 }
                 
                 // Sleep Timer (Battery Saver)
-                ZenithSwitchRow(stringResource(R.string.sleep_timer), "Turn off screen completely after time", autoConfig.isSleepTimerEnabled) {
-                    autoConfig = autoConfig.copy(isSleepTimerEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
-                }
-                if (autoConfig.isSleepTimerEnabled) {
-                    Text("Time to sleep: ${autoConfig.sleepTimerDurationMinutes} minutes", color = ZenithSecondary, fontSize = 14.sp, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
-                    Slider(
-                        value = autoConfig.sleepTimerDurationMinutes.toFloat(),
-                        onValueChange = { 
-                            autoConfig = autoConfig.copy(sleepTimerDurationMinutes = it.toInt())
-                            automationSettings.updateConfig(autoConfig)
-                        },
-                        valueRange = 1f..120f,
-                        steps = 118,
-                        colors = SliderDefaults.colors(
-                            thumbColor = ZenithAccent,
-                            activeTrackColor = ZenithAccent,
-                            inactiveTrackColor = ZenithSecondary.copy(alpha = 0.3f)
-                        )
-                    )
-                }
                 ZenithSwitchRow(stringResource(R.string.floating_action_button), "Show quick-access button", !autoConfig.hideFloatingButton) { 
                     autoConfig = autoConfig.copy(hideFloatingButton = !it); automationSettings.updateConfig(autoConfig) 
                 }

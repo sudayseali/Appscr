@@ -7,10 +7,8 @@
     <string name="display_settings">Display Settings</string>
     <string name="always_on_display">Always-On Display</string>
     <string name="oled_pixel_shift">OLED Pixel Shift</string>
-    <string name="privacy_tint">Privacy Tint</string>
     <string name="smart_triggers">Smart Triggers</string>
     <string name="pocket_mode">Pocket Mode</string>
-    <string name="sleep_timer">Sleep Timer (Battery Saver)</string>
     <string name="floating_action_button">Floating Action Button</string>
     <string name="floating_lock_style">Floating Lock Style</string>
     <string name="floating_lock_size">Floating Lock Size</string>

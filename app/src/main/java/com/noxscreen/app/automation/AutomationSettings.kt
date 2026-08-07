@@ -11,10 +11,7 @@ data class AutomationConfig(
     val isFlipToSleepEnabled: Boolean = false,
     val isShakeToWakeEnabled: Boolean = false,
     val stationaryDurationSeconds: Int = 10,
-    val isSleepTimerEnabled: Boolean = false,
-    val sleepTimerDurationMinutes: Int = 30,
-    val isDarkTintEnabled: Boolean = false,
-    val isAodEnabled: Boolean = true,
+    val isAodEnabled: Boolean = false,
     val clockStyle: String = "default",
     val floatingLockStyle: String = "lock",
     val floatingLockSize: Float = 0.5f,
@@ -23,7 +20,7 @@ data class AutomationConfig(
     val tapsToWake: Int = 1,
     val hideFloatingButton: Boolean = false,
     val reduceBrightness: Boolean = false,
-    val oledBurnInProtection: Boolean = true,
+    val oledBurnInProtection: Boolean = false,
     val isSkipUnlockScreenEnabled: Boolean = false,
     val isBiometricEnabled: Boolean = false,
     val isUsageLimitsEnabled: Boolean = false,
@@ -44,10 +41,7 @@ class AutomationSettings(private val context: Context) {
             isFlipToSleepEnabled = prefs.getBoolean("is_flip_to_sleep_enabled", false),
             isShakeToWakeEnabled = prefs.getBoolean("is_shake_to_wake_enabled", false),
             stationaryDurationSeconds = prefs.getInt("stationary_duration_sec", 10),
-            isSleepTimerEnabled = prefs.getBoolean("is_sleep_timer_enabled", false),
-            sleepTimerDurationMinutes = prefs.getInt("sleep_timer_duration_min", 30),
-            isDarkTintEnabled = prefs.getBoolean("is_dark_tint_enabled", false),
-            isAodEnabled = prefs.getBoolean("is_aod_enabled", true),
+            isAodEnabled = prefs.getBoolean("is_aod_enabled", false),
             clockStyle = prefs.getString("clock_style", "default") ?: "default",
             floatingLockStyle = prefs.getString("floating_lock_style", "lock") ?: "lock",
             floatingLockSize = prefs.getFloat("floating_lock_size", 0.5f),
@@ -56,7 +50,7 @@ class AutomationSettings(private val context: Context) {
             tapsToWake = prefs.getInt("taps_to_wake", 1),
             hideFloatingButton = prefs.getBoolean("hide_floating_button", false),
             reduceBrightness = prefs.getBoolean("reduce_brightness", false),
-            oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", true),
+            oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", false),
             isSkipUnlockScreenEnabled = prefs.getBoolean("is_skip_unlock_screen_enabled", false),
             isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", false),
             isUsageLimitsEnabled = prefs.getBoolean("is_usage_limits_enabled", false),
@@ -75,9 +69,6 @@ class AutomationSettings(private val context: Context) {
             .putBoolean("is_flip_to_sleep_enabled", config.isFlipToSleepEnabled)
             .putBoolean("is_shake_to_wake_enabled", config.isShakeToWakeEnabled)
             .putInt("stationary_duration_sec", config.stationaryDurationSeconds)
-            .putBoolean("is_sleep_timer_enabled", config.isSleepTimerEnabled)
-            .putInt("sleep_timer_duration_min", config.sleepTimerDurationMinutes)
-            .putBoolean("is_dark_tint_enabled", config.isDarkTintEnabled)
             .putBoolean("is_aod_enabled", config.isAodEnabled)
             .putString("clock_style", config.clockStyle)
             .putString("floating_lock_style", config.floatingLockStyle)
@@ -121,13 +112,7 @@ class AutomationSettings(private val context: Context) {
         prefs.edit().putInt("stationary_duration_sec", seconds).apply()
     }
 
-    fun setSleepTimerEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_sleep_timer_enabled", enabled).apply()
-    }
 
-    fun setSleepTimerDuration(minutes: Int) {
-        prefs.edit().putInt("sleep_timer_duration_min", minutes).apply()
-    }
 
     fun setDarkTintEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("is_dark_tint_enabled", enabled).apply()

@@ -129,34 +129,6 @@ class BlackScreenService : Service() {
             },
             onRemoveOverlay = {
                 showFloatingBubbleInternal()
-            },
-            onSleepTimerTick = { remainingSec ->
-                val minutes = remainingSec / 60
-                val seconds = remainingSec % 60
-                val timeStr = String.format("%02d:%02d", minutes, seconds)
-                sleepTimerTextView?.post {
-                    sleepTimerTextView?.text = "Waqti-xire (Sleep Timer): $timeStr"
-                    sleepTimerTextView?.visibility = View.VISIBLE
-                }
-            },
-            onSleepTimerExpired = {
-                Handler(Looper.getMainLooper()).post {
-                    android.widget.Toast.makeText(
-                        this,
-                        "Waqti-xire: Muraayada waa la iska daminayaa si batteriga loo xifdiyo.",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
-                    
-                    try {
-                        blackoutView?.let {
-                            val params = it.layoutParams as WindowManager.LayoutParams
-                            params.flags = params.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON.inv()
-                            windowManager.updateViewLayout(it, params)
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("BlackScreenService", "Error clearing KEEP_SCREEN_ON", e)
-                    }
-                }
             }
         )
 
@@ -226,7 +198,7 @@ class BlackScreenService : Service() {
                 channelId,
                 "NoxScreen Pro Service",
                 NotificationManager.IMPORTANCE_LOW
-            )
+        )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
@@ -392,7 +364,7 @@ class BlackScreenService : Service() {
             addView(topContainer, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, 
                 FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
+        ).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             })
             
@@ -424,7 +396,7 @@ class BlackScreenService : Service() {
             addView(unlockButton, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, 
                 FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
+        ).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
                 bottomMargin = 150
             })
@@ -501,7 +473,6 @@ class BlackScreenService : Service() {
     private fun showFloatingBubbleInternal() {
         handler.removeCallbacks(timeUpdater)
         updateFloatingBubbleStyle()
-        smartAutomationManager.stopSleepTimer()
         sleepTimerTextView?.visibility = View.GONE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
             return
@@ -538,9 +509,7 @@ class BlackScreenService : Service() {
         try {
             if (blackoutView?.parent == null) {
                 val config = smartAutomationManager.settings.getConfig()
-                blackoutView?.setBackgroundColor(
-                    if (config.isDarkTintEnabled) Color.parseColor("#E6000000") else Color.BLACK
-                )
+                blackoutView?.setBackgroundColor(Color.BLACK)
 
                 // Always start pure black
                 isUnlockScreenVisible = false
@@ -563,10 +532,10 @@ class BlackScreenService : Service() {
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    if (config.isDarkTintEnabled) PixelFormat.TRANSLUCENT else PixelFormat.OPAQUE
-                ).apply {
-                    screenBrightness = if (config.isDarkTintEnabled) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else 0f
-                    buttonBrightness = if (config.isDarkTintEnabled) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else 0f
+                    PixelFormat.OPAQUE
+        ).apply {
+                    screenBrightness = 0f
+                    buttonBrightness = 0f
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                     }
@@ -582,11 +551,10 @@ class BlackScreenService : Service() {
                         or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         or View.SYSTEM_UI_FLAG_FULLSCREEN
-                )
+        )
                 windowManager.addView(blackoutView, params)
                 blackoutStartTime = System.currentTimeMillis()
                 incrementUsageCount()
-                smartAutomationManager.startSleepTimerIfEnabled()
             }
         } catch (e: Exception) {
             // Fallback to Activity if overlay is denied by AppOps
