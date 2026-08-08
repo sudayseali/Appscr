@@ -220,12 +220,13 @@ class MainActivity : ComponentActivity() {
 }
 
 // Custom Unique Theme Colors for Zenith
-val ZenithBackgroundStart = Color(0xFF00050A)
-val ZenithBackgroundEnd = Color(0xFF0A0F1A)
-val ZenithCard = Color(0xFF131722)
-val ZenithAccent = Color(0xFF00E676)
+val ZenithBackground = Color(0xFF030A16)
+val ZenithCard = Color(0xFF0F1528)
+val ZenithAccent = Color(0xFF00FFC2)
 val ZenithSecondary = Color(0xFF7B61FF)
 val ZenithTextMuted = Color(0xFF8B92A5)
+val ZenithGradientStart = Color(0xFF070912)
+val ZenithGradientEnd = Color(0xFF111424)
 
 @Composable
 fun ZenithApp(
@@ -247,60 +248,33 @@ fun ZenithApp(
     
     val estimatedMah = ((totalTimeSaved / (1000f * 60f * 60f)) * 200f).toInt()
     
-    Box(modifier = Modifier.fillMaxSize().background(
-        brush = Brush.verticalGradient(listOf(ZenithBackgroundStart, ZenithBackgroundEnd))
-    )) {
+    Box(modifier = Modifier.fillMaxSize().background(ZenithBackground)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(top = 48.dp, bottom = 120.dp, start = 20.dp, end = 20.dp),
+                .padding(top = 64.dp, bottom = 120.dp, start = 24.dp, end = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(stringResource(R.string.app_name).split(" ")[0], color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                        Text(" Pro", color = ZenithAccent, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Text(stringResource(R.string.eco_screen_optimizer), color = ZenithTextMuted, fontSize = 11.sp, letterSpacing = 2.sp, modifier = Modifier.padding(top = 4.dp))
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Security, contentDescription = "Protected", tint = ZenithAccent, modifier = Modifier.size(24.dp))
-                    Text("Protected", color = ZenithTextMuted, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
-                }
-            }
+            Text(stringResource(R.string.app_name), color = ZenithAccent, fontSize = 32.sp, fontWeight = FontWeight.Black, letterSpacing = 8.sp)
+            Text(stringResource(R.string.eco_screen_optimizer), color = ZenithSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
             
             Spacer(modifier = Modifier.height(40.dp))
             
             // Central Power Button
-            Box(
-                modifier = Modifier
-                    .size(180.dp)
-                    .background(Brush.radialGradient(listOf(ZenithAccent.copy(alpha = 0.2f), Color.Transparent)), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                PowerPulseButton(
-                    onClick = {
-                        if (!hasPermission) {
-                            onRequestPermission()
-                        } else if (isServiceRunning) {
-                            onStopService()
-                        } else {
-                            onStartService()
-                        }
-                    },
-                    isRunning = isServiceRunning
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(if (isServiceRunning) "Tap to wake screen" else "Tap to sleep screen", color = ZenithAccent, fontSize = 14.sp)
-            
+            PowerPulseButton(
+                onClick = {
+                    if (!hasPermission) {
+                        onRequestPermission()
+                    } else if (isServiceRunning) {
+                        onStopService()
+                    } else {
+                        onStartService()
+                    }
+                },
+                isRunning = isServiceRunning
+            )
             
             Spacer(modifier = Modifier.height(48.dp))
             
@@ -322,11 +296,7 @@ fun ZenithApp(
             // Expandable Settings
             ExpandableConfigSection(
                 title = stringResource(R.string.display_settings),
-                subtitle = "Customize how the screen behaves",
                 icon = Icons.Default.DisplaySettings,
-                iconColor = ZenithAccent,
-                badgeText = "3 Active",
-                badgeColor = ZenithAccent,
                 isExpanded = true
             ) {
                 LanguageRow()
@@ -346,11 +316,7 @@ fun ZenithApp(
             
             ExpandableConfigSection(
                 title = stringResource(R.string.smart_triggers),
-                subtitle = "Auto actions based on your movements",
                 icon = Icons.Default.Sensors,
-                iconColor = ZenithSecondary,
-                badgeText = "4 Active",
-                badgeColor = ZenithSecondary,
                 isExpanded = false
             ) {
                 ZenithSwitchRow(stringResource(R.string.pocket_mode), "Auto-lock in pocket", autoConfig.isPocketModeEnabled) { 
@@ -460,7 +426,7 @@ fun ZenithApp(
                                 .clickable { autoConfig = autoConfig.copy(tapsToWake = taps); automationSettings.updateConfig(autoConfig) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("$taps", color = if (autoConfig.tapsToWake == taps) Color(0xFF00050A) else Color.White, fontWeight = FontWeight.Bold)
+                            Text("$taps", color = if (autoConfig.tapsToWake == taps) ZenithBackground else Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -470,11 +436,7 @@ fun ZenithApp(
             
             ExpandableConfigSection(
                 title = stringResource(R.string.security),
-                subtitle = "Protect your app and privacy",
-                icon = Icons.Default.Security,
-                iconColor = Color(0xFF2196F3),
-                badgeText = "Biometric Off",
-                badgeColor = Color(0xFF2196F3),
+                icon = Icons.Default.Lock,
                 isExpanded = false
             ) {
                 ZenithSwitchRow(stringResource(R.string.enable_biometric), "Use fingerprint or face recognition to enhance security", autoConfig.isBiometricEnabled) { 
@@ -485,12 +447,8 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
             
             ExpandableConfigSection(
-                title = "Focus Mode",
-                subtitle = "Limit usage and stay productive",
-                icon = Icons.Default.GpsFixed,
-                iconColor = Color(0xFFFF9800),
-                badgeText = "Limits Off",
-                badgeColor = Color(0xFFFF9800),
+                title = stringResource(R.string.usage_limits),
+                icon = Icons.Default.HealthAndSafety,
                 isExpanded = false
             ) {
                 val lifecycleOwner = LocalLifecycleOwner.current
@@ -573,64 +531,10 @@ fun ZenithApp(
             }
         }
         
-        // Bottom controls
-        Column(
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.DarkMode, contentDescription = "Dark Mode", tint = Color.White, modifier = Modifier.size(24.dp))
-                
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(Brush.radialGradient(listOf(ZenithAccent.copy(alpha=0.3f), Color.Transparent)), CircleShape)
-                            .border(1.dp, ZenithAccent, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Lock, contentDescription = "Lock", tint = ZenithAccent)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.KeyboardDoubleArrowLeft, contentDescription = null, tint = ZenithAccent.copy(alpha=0.5f), modifier = Modifier.size(16.dp))
-                        Text(" Drag to move ", color = ZenithAccent, fontSize = 12.sp)
-                        Icon(Icons.Default.KeyboardDoubleArrowRight, contentDescription = null, tint = ZenithAccent.copy(alpha=0.5f), modifier = Modifier.size(16.dp))
-                    }
-                }
-                
-                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White, modifier = Modifier.size(24.dp))
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .background(ZenithCard, RoundedCornerShape(24.dp))
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Eco, contentDescription = "Eco", tint = ZenithAccent, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Thank you for saving energy and", color = ZenithTextMuted, fontSize = 12.sp)
-                    Text("extending your screen life.", color = ZenithTextMuted, fontSize = 12.sp)
-                }
-                Icon(Icons.Default.Favorite, contentDescription = "Heart", tint = ZenithAccent, modifier = Modifier.size(24.dp))
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            com.noxscreen.app.ads.UnityBannerAd(
-                adUnitId = "Banner_Android",
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        com.noxscreen.app.ads.UnityBannerAd(
+            adUnitId = "Banner_Android", // Default test placement or you can use your actual unit ID
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -662,7 +566,7 @@ fun PowerPulseButton(onClick: () -> Unit, isRunning: Boolean = false) {
                 shape = CircleShape,
                 spotColor = ZenithAccent.copy(alpha = glow)
             )
-            .background(Brush.radialGradient(listOf(ZenithBackgroundStart, ZenithBackgroundEnd)), CircleShape)
+            .background(Brush.radialGradient(listOf(ZenithBackground, ZenithGradientEnd)), CircleShape)
             .border(2.dp, Brush.linearGradient(listOf(ZenithAccent, ZenithSecondary)), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -678,7 +582,7 @@ fun PowerPulseButton(onClick: () -> Unit, isRunning: Boolean = false) {
             modifier = Modifier
                 .size(90.dp)
                 .background(
-                    brush = Brush.radialGradient(listOf(ZenithCard, ZenithBackgroundEnd)),
+                    brush = Brush.radialGradient(listOf(ZenithCard, ZenithBackground)),
                     shape = CircleShape
                 )
                 .border(1.dp, ZenithAccent, CircleShape),
@@ -727,49 +631,31 @@ fun ImpactCard(title: String, value: String, icon: ImageVector, color: Color, mo
 }
 
 @Composable
-fun ExpandableConfigSection(title: String, subtitle: String, icon: ImageVector, iconColor: Color, badgeText: String, badgeColor: Color, isExpanded: Boolean, content: @Composable ColumnScope.() -> Unit) {
+fun ExpandableConfigSection(title: String, icon: ImageVector, isExpanded: Boolean, content: @Composable ColumnScope.() -> Unit) {
     var expanded by remember { mutableStateOf(isExpanded) }
     
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(ZenithCard)
-            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brush.verticalGradient(listOf(ZenithCard, Color(0x80131422)))).border(1.dp, Color.White.copy(alpha=0.05f), RoundedCornerShape(20.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+            .padding(vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(iconColor.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
-            }
+            Icon(icon, contentDescription = null, tint = ZenithSecondary, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = ZenithTextMuted, fontSize = 12.sp)
-            }
-            Box(
-                modifier = Modifier
-                    .background(badgeColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(badgeText, color = badgeColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+            Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Icon(
-                if (expanded) Icons.Default.ExpandLess else Icons.Default.ChevronRight,
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = null,
-                tint = ZenithTextMuted,
-                modifier = Modifier.size(20.dp)
+                tint = ZenithTextMuted
             )
         }
         
@@ -887,7 +773,7 @@ fun SplashScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(ZenithBackgroundStart, ZenithBackgroundEnd))),
+            .background(ZenithBackground),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
