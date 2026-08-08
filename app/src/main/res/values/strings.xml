@@ -33,4 +33,6 @@
     <string name="shake_to_wake">Shake to Wake</string>
 
     <string name="skip_unlock_screen">Skip Unlock Screen</string>
+    <string name="privacy_tint">Privacy Tint</string>
+    <string name="sleep_timer">Sleep Timer</string>
 </resources>
