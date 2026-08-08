@@ -459,6 +459,12 @@ class BlackScreenService : Service() {
                 "power" -> R.drawable.ic_power
                 "bolt" -> R.drawable.ic_bolt
                 "favorite" -> R.drawable.ic_favorite
+                "crown" -> R.drawable.ic_crown
+                "diamond" -> R.drawable.ic_diamond
+                "star" -> R.drawable.ic_star
+                "fire" -> R.drawable.ic_fire
+                "atom" -> R.drawable.ic_atom
+                "shield_lock" -> R.drawable.ic_shield_lock
                 else -> R.drawable.ic_moon
             }
             setImageResource(iconRes)

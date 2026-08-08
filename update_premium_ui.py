@@ -1,4 +1,6 @@
-package com.noxscreen.app
+import os
+
+code = """package com.noxscreen.app
 
 import android.content.Context
 import android.content.Intent
@@ -38,11 +40,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import com.noxscreen.app.R
 
 import androidx.lifecycle.Lifecycle
@@ -360,14 +357,21 @@ fun ZenithApp(
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Central Power Core Button & Floating Action Button Container
+            // Central Power Core Button
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                    .size(200.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                (if (isServiceRunning) ZenithAccent else ZenithCyan).copy(alpha = 0.22f),
+                                Color.Transparent
+                            )
+                        ),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                // Central Start Power Button
                 PowerPulseButton(
                     onClick = {
                         if (!hasPermission) {
@@ -378,74 +382,18 @@ fun ZenithApp(
                             onStartService()
                         }
                     },
-                    isRunning = isServiceRunning,
-                    modifier = Modifier.align(Alignment.Center)
+                    isRunning = isServiceRunning
                 )
-
-                // Floating Action Button Quick Toggle (placed right next to start button)
-                val isFloatingOn = !autoConfig.hideFloatingButton
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 4.dp, bottom = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isFloatingOn) ZenithAccent.copy(alpha = 0.15f) else ZenithCardGlow
-                            )
-                            .border(
-                                1.5.dp,
-                                if (isFloatingOn) ZenithAccent else ZenithCardBorder,
-                                CircleShape
-                            )
-                            .clickable {
-                                autoConfig = autoConfig.copy(hideFloatingButton = !autoConfig.hideFloatingButton)
-                                automationSettings.updateConfig(autoConfig)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(R.drawable.ic_bolt),
-                            contentDescription = "Floating Action Button",
-                            tint = if (isFloatingOn) ZenithAccent else ZenithTextMuted,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Floating",
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = if (isFloatingOn) "ON" else "OFF",
-                        color = if (isFloatingOn) ZenithAccent else ZenithTextMuted,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = if (isServiceRunning) "Tap to wake screen" else "Tap to sleep screen",
-                color = Color.White,
-                fontSize = 15.sp,
+                color = if (isServiceRunning) ZenithAccent else ZenithCyan,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.5.sp
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            EqualizerWaveBar(
-                isRunning = isServiceRunning,
-                color = if (isServiceRunning) ZenithAccent else ZenithCyan
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -466,7 +414,6 @@ fun ZenithApp(
                     icon = Icons.Default.EnergySavingsLeaf,
                     color = ZenithAccent,
                     barIndex = 0,
-                    isRunning = isServiceRunning,
                     modifier = Modifier.weight(1f)
                 )
                 val hours = (totalTimeSaved / 3600000).toInt()
@@ -477,7 +424,6 @@ fun ZenithApp(
                     icon = Icons.Default.Timer,
                     color = ZenithSecondary,
                     barIndex = 1,
-                    isRunning = isServiceRunning,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -589,12 +535,6 @@ fun ZenithApp(
                     "moon" to androidx.compose.ui.res.painterResource(R.drawable.ic_moon),
                     "circle" to androidx.compose.ui.res.painterResource(R.drawable.ic_circle),
                     "double_circle" to androidx.compose.ui.res.painterResource(R.drawable.ic_double_circle),
-                    "crown" to androidx.compose.ui.res.painterResource(R.drawable.ic_crown),
-                    "diamond" to androidx.compose.ui.res.painterResource(R.drawable.ic_diamond),
-                    "star" to androidx.compose.ui.res.painterResource(R.drawable.ic_star),
-                    "fire" to androidx.compose.ui.res.painterResource(R.drawable.ic_fire),
-                    "atom" to androidx.compose.ui.res.painterResource(R.drawable.ic_atom),
-                    "shield_lock" to androidx.compose.ui.res.painterResource(R.drawable.ic_shield_lock),
                     "key" to androidx.compose.ui.res.painterResource(R.drawable.ic_key),
                     "eye_off" to androidx.compose.ui.res.painterResource(R.drawable.ic_eye_off),
                     "shield" to androidx.compose.ui.res.painterResource(R.drawable.ic_shield),
@@ -863,15 +803,150 @@ fun ZenithApp(
                 }
             }
         }
-        // Bottom Banner Ad
-        Box(
+
+        // Bottom Dock Controls
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 8.dp),
-            contentAlignment = Alignment.Center
+                .padding(bottom = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Quick Control Floating Dock
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(ZenithCard)
+                        .border(1.dp, ZenithCardBorder, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DarkMode,
+                        contentDescription = "Dark Mode",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Drag Trigger Indicator
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(ZenithAccent.copy(alpha = 0.3f), Color.Transparent)
+                                ),
+                                CircleShape
+                            )
+                            .border(1.5.dp, ZenithAccent, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Lock Trigger",
+                            tint = ZenithAccent,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardDoubleArrowLeft,
+                            contentDescription = null,
+                            tint = ZenithAccent.copy(alpha = 0.6f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = " Drag to move ",
+                            color = ZenithAccent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            imageVector = Icons.Default.KeyboardDoubleArrowRight,
+                            contentDescription = null,
+                            tint = ZenithAccent.copy(alpha = 0.6f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(ZenithCard)
+                        .border(1.dp, ZenithCardBorder, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Eco Thank You Card
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(ZenithCard)
+                    .border(1.dp, ZenithCardBorder, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(ZenithAccent.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Eco,
+                        contentDescription = "Eco",
+                        tint = ZenithAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Thank you for saving energy",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Extending your OLED screen life.",
+                        color = ZenithTextMuted,
+                        fontSize = 11.sp
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Heart",
+                    tint = Color(0xFFFF5252),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
             com.noxscreen.app.ads.UnityBannerAd(
                 adUnitId = "Banner_Android",
                 modifier = Modifier.fillMaxWidth()
@@ -881,217 +956,73 @@ fun ZenithApp(
 }
 
 @Composable
-fun PowerPulseButton(
-    onClick: () -> Unit,
-    isRunning: Boolean = false,
-    modifier: Modifier = Modifier
-) {
+fun PowerPulseButton(onClick: () -> Unit, isRunning: Boolean = false) {
     val infiniteTransition = rememberInfiniteTransition()
-
-    // Rotating wave animation
-    val rotationAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
-            animation = tween(14000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         )
     )
-
-    // Pulse animation for outer aura
-    val pulse by infiniteTransition.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1.06f,
+    val glow by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         )
     )
 
-    val primaryColor = if (isRunning) ZenithAccent else ZenithCyan
-
     Box(
-        modifier = modifier
-            .size(220.dp)
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
+        modifier = Modifier
+            .size(150.dp)
+            .shadow(
+                elevation = 24.dp,
+                shape = CircleShape,
+                spotColor = (if (isRunning) ZenithAccent else ZenithCyan).copy(alpha = glow)
+            )
+            .background(
+                brush = Brush.radialGradient(
+                    listOf(ZenithBackgroundStart, ZenithBackgroundEnd)
+                ),
+                shape = CircleShape
+            )
+            .border(
+                2.dp,
+                Brush.linearGradient(
+                    listOf(if (isRunning) ZenithAccent else ZenithCyan, ZenithSecondary)
+                ),
+                CircleShape
+            )
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // Outer Particle & Wave Aura Canvas
-        androidx.compose.foundation.Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { rotationZ = rotationAngle }
-        ) {
-            val centerPt = Offset(size.width / 2f, size.height / 2f)
-            val outerRadius = size.width / 2f - 10.dp.toPx()
-
-            val wavePoints = 48
-            val path = Path()
-            for (i in 0..wavePoints) {
-                val angle = (i.toFloat() / wavePoints) * 2 * Math.PI.toFloat()
-                val waveOffset = kotlin.math.sin(angle * 5 + (rotationAngle * Math.PI.toFloat() / 180f)) * 4.dp.toPx()
-                val r = outerRadius + waveOffset
-                val x = centerPt.x + r * kotlin.math.cos(angle)
-                val y = centerPt.y + r * kotlin.math.sin(angle)
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            path.close()
-
-            drawPath(
-                path = path,
-                color = primaryColor.copy(alpha = 0.5f),
-                style = Stroke(
-                    width = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
-                )
-            )
-
-            // Particles around perimeter
-            for (p in 0..15) {
-                val pAngle = (p.toFloat() / 16) * 2 * Math.PI.toFloat() + (rotationAngle * Math.PI.toFloat() / 180f)
-                val pr = outerRadius + kotlin.math.sin(p * 2f) * 6.dp.toPx()
-                val px = centerPt.x + pr * kotlin.math.cos(pAngle)
-                val py = centerPt.y + pr * kotlin.math.sin(pAngle)
-                drawCircle(
-                    color = primaryColor.copy(alpha = 0.65f),
-                    radius = (1.5 + (p % 3)).dp.toPx(),
-                    center = Offset(px, py)
-                )
-            }
-        }
-
-        // Ambient radial background glow
+        // Inner pulsing ring
         Box(
             modifier = Modifier
-                .size(180.dp * pulse)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.35f),
-                            primaryColor.copy(alpha = 0.10f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                )
+                .size(110.dp * pulse)
+                .background((if (isRunning) ZenithAccent else ZenithCyan).copy(alpha = 0.15f), CircleShape)
         )
-
-        // 3D Glass Orb Sphere Core
+        // Core button
         Box(
             modifier = Modifier
-                .size(160.dp)
-                .shadow(
-                    elevation = 28.dp,
-                    shape = CircleShape,
-                    spotColor = primaryColor
-                )
+                .size(96.dp)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryColor,
-                            primaryColor.copy(alpha = 0.85f),
-                            Color(0xFF003818),
-                            Color(0xFF011409)
-                        ),
-                        center = Offset(160.dp.value * 0.35f, 160.dp.value * 0.25f),
-                        radius = 220f
+                        listOf(ZenithCardGlow, ZenithBackgroundEnd)
                     ),
                     shape = CircleShape
                 )
-                .border(
-                    width = 2.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            primaryColor,
-                            primaryColor.copy(alpha = 0.3f),
-                            primaryColor.copy(alpha = 0.7f)
-                        )
-                    ),
-                    shape = CircleShape
-                ),
+                .border(1.5.dp, if (isRunning) ZenithAccent else ZenithCyan, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            // Top Gloss Highlight Arc
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.82f)
-                    .height(52.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = 6.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.38f),
-                                Color.White.copy(alpha = 0.05f),
-                                Color.Transparent
-                            )
-                        ),
-                        shape = CircleShape
-                    )
-            )
-
-            // Center Power Icon with Glow Shadow
-            Box(
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PowerSettingsNew,
-                    contentDescription = "Power Action",
-                    tint = primaryColor.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(58.dp)
-                        .graphicsLayer { alpha = 0.8f }
-                )
-                Icon(
-                    imageVector = Icons.Default.PowerSettingsNew,
-                    contentDescription = "Power Action",
-                    tint = Color.White,
-                    modifier = Modifier.size(52.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun EqualizerWaveBar(
-    isRunning: Boolean,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition()
-
-    Row(
-        modifier = modifier.height(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val barCount = 13
-        for (i in 0 until barCount) {
-            val animDuration = 500 + (i % 5) * 120
-            val hFactor by infiniteTransition.animateFloat(
-                initialValue = 0.2f,
-                targetValue = 1.0f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(animDuration, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                )
-            )
-
-            val heightDp = if (isRunning) (4 + (hFactor * (12 - kotlin.math.abs(i - 6)))).dp else 3.dp
-
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(heightDp)
-                    .background(
-                        color = if (isRunning) color else Color.Gray.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(2.dp)
-                    )
+            Icon(
+                imageVector = Icons.Default.PowerSettingsNew,
+                contentDescription = "Power Action",
+                tint = if (isRunning) ZenithAccent else ZenithCyan,
+                modifier = Modifier.size(44.dp)
             )
         }
     }
@@ -1144,7 +1075,6 @@ fun ImpactCard(
     icon: ImageVector,
     color: Color,
     barIndex: Int = 0,
-    isRunning: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -1189,110 +1119,27 @@ fun ImpactCard(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
-        // Animated Wave Sparkline Graph
-        AnimatedWaveSparklineGraph(
-            color = color,
-            isRunning = isRunning,
-            cardIndex = barIndex
-        )
-    }
-}
-
-@Composable
-fun AnimatedWaveSparklineGraph(
-    color: Color,
-    isRunning: Boolean,
-    cardIndex: Int = 0
-) {
-    val infiniteTransition = rememberInfiniteTransition()
-
-    // Smooth wave flow animation
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(if (isRunning) 2200 else 6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        )
-    )
-
-    // Dynamic wave amplitude multiplier when active
-    val ampMult by infiniteTransition.animateFloat(
-        initialValue = if (isRunning) 0.85f else 0.98f,
-        targetValue = if (isRunning) 1.25f else 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    androidx.compose.foundation.Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(30.dp)
-    ) {
-        val width = size.width
-        val height = size.height
-        if (width <= 0 || height <= 0) return@Canvas
-
-        val path = Path()
-        val fillPath = Path()
-
-        val points = 32
-        val baseFreq = if (cardIndex == 0) 2.2f else 3.0f
-
-        fillPath.moveTo(0f, height)
-
-        for (i in 0..points) {
-            val normX = i.toFloat() / points
-            val x = normX * width
-
-            // Trend curve rising towards the right
-            val trendY = height * (0.75f - normX * 0.45f)
-
-            // Combined sine harmonics for organic wave look
-            val wave1 = kotlin.math.sin((normX * baseFreq * 2 * Math.PI + phase).toDouble()).toFloat()
-            val wave2 = kotlin.math.cos((normX * baseFreq * 1.4 * Math.PI - phase * 0.8).toDouble()).toFloat()
-
-            val amplitude = (if (isRunning) 5.5.dp.toPx() else 3.0.dp.toPx()) * ampMult
-            val y = (trendY + (wave1 + wave2 * 0.45f) * amplitude).coerceIn(3.dp.toPx(), height - 2.dp.toPx())
-
-            if (i == 0) {
-                path.moveTo(x, y)
-                fillPath.lineTo(x, y)
-            } else {
-                path.lineTo(x, y)
-                fillPath.lineTo(x, y)
+        // Mini Sparkline Graph
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            val heights = if (barIndex == 0) listOf(4, 6, 8, 5, 10, 14, 8, 12, 16, 10, 18, 12, 14, 20)
+                          else listOf(6, 8, 5, 12, 10, 8, 14, 12, 18, 16, 12, 14, 18, 20)
+            heights.forEach { h ->
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(h.dp)
+                        .background(color.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+                )
             }
         }
-
-        fillPath.lineTo(width, height)
-        fillPath.close()
-
-        // Draw smooth gradient fill under the wave line
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    color.copy(alpha = if (isRunning) 0.50f else 0.25f),
-                    color.copy(alpha = 0.02f)
-                ),
-                startY = 0f,
-                endY = height
-            )
-        )
-
-        // Draw glowing wave stroke line
-        drawPath(
-            path = path,
-            color = color,
-            style = Stroke(
-                width = if (isRunning) 2.2.dp.toPx() else 1.6.dp.toPx(),
-                cap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
-        )
     }
 }
 
@@ -1699,3 +1546,10 @@ fun setAppLocale(context: Context, languageCode: String) {
         context.recreate()
     }
 }
+"""
+
+target_path = "app/src/main/java/com/noxscreen/app/MainActivity.kt"
+with open(target_path, "w") as f:
+    f.write(code)
+
+print(f"{target_path} written successfully!")
