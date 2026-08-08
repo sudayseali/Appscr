@@ -288,72 +288,88 @@ fun ZenithApp(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Premium Header Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0B1324)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1C2D4A))
             ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "NoxScreen",
-                            color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = (-0.5).sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(ZenithAccent, ZenithCyan)
-                                    )
-                                )
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "PRO",
-                                color = Color(0xFF020612),
-                                fontSize = 12.sp,
+                                text = "NoxScreen",
+                                color = Color.White,
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = (-0.5).sp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color(0xFF00E5FF), Color(0xFF00E676))
+                                        )
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "PRO",
+                                    color = Color(0xFF020612),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                        Text(
+                            text = stringResource(R.string.eco_screen_optimizer).uppercase(),
+                            color = Color(0xFF94A3B8),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+                    // Protected / Active Badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                if (isServiceRunning) Color(0xFF00E676).copy(alpha = 0.16f) else Color(0xFFFFB300).copy(alpha = 0.16f)
+                            )
+                            .border(
+                                1.dp,
+                                if (isServiceRunning) Color(0xFF00E676).copy(alpha = 0.4f) else Color(0xFFFFB300).copy(alpha = 0.4f),
+                                RoundedCornerShape(20.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(if (isServiceRunning) Color(0xFF00E676) else Color(0xFFFFB300), CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isServiceRunning) "ACTIVE" else "PROTECTED",
+                                color = if (isServiceRunning) Color(0xFF00E676) else Color(0xFFFFB300),
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 letterSpacing = 1.sp
                             )
                         }
-                    }
-                    Text(
-                        text = stringResource(R.string.eco_screen_optimizer).uppercase(),
-                        color = ZenithTextMuted,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                // Protected Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(ZenithAccent.copy(alpha = 0.12f))
-                        .border(1.dp, ZenithAccent.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(if (isServiceRunning) ZenithAccent else Color(0xFFFFB74D), CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isServiceRunning) "ACTIVE" else "PROTECTED",
-                            color = if (isServiceRunning) ZenithAccent else Color(0xFFFFB74D),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
                     }
                 }
             }
@@ -384,6 +400,19 @@ fun ZenithApp(
 
                 // Floating Action Button Quick Toggle (placed right next to start button)
                 val isFloatingOn = !autoConfig.hideFloatingButton
+                val floatBgColor by animateColorAsState(
+                    targetValue = if (isFloatingOn) ZenithAccent.copy(alpha = 0.15f) else ZenithCardGlow,
+                    animationSpec = tween(300)
+                )
+                val floatBorderColor by animateColorAsState(
+                    targetValue = if (isFloatingOn) ZenithAccent else ZenithCardBorder,
+                    animationSpec = tween(300)
+                )
+                val floatIconTint by animateColorAsState(
+                    targetValue = if (isFloatingOn) ZenithAccent else ZenithTextMuted,
+                    animationSpec = tween(300)
+                )
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -394,14 +423,8 @@ fun ZenithApp(
                         modifier = Modifier
                             .size(54.dp)
                             .clip(CircleShape)
-                            .background(
-                                if (isFloatingOn) ZenithAccent.copy(alpha = 0.15f) else ZenithCardGlow
-                            )
-                            .border(
-                                1.5.dp,
-                                if (isFloatingOn) ZenithAccent else ZenithCardBorder,
-                                CircleShape
-                            )
+                            .background(floatBgColor)
+                            .border(1.5.dp, floatBorderColor, CircleShape)
                             .clickable {
                                 autoConfig = autoConfig.copy(hideFloatingButton = !autoConfig.hideFloatingButton)
                                 automationSettings.updateConfig(autoConfig)
@@ -410,21 +433,21 @@ fun ZenithApp(
                     ) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(R.drawable.ic_bolt),
-                            contentDescription = "Floating Action Button",
-                            tint = if (isFloatingOn) ZenithAccent else ZenithTextMuted,
+                            contentDescription = "Toggle Floating Overlay Widget",
+                            tint = floatIconTint,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Floating",
+                        text = "Widget",
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = if (isFloatingOn) "ON" else "OFF",
-                        color = if (isFloatingOn) ZenithAccent else ZenithTextMuted,
+                        color = floatIconTint,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -499,33 +522,48 @@ fun ZenithApp(
                 badgeColor = ZenithAccent,
                 isExpanded = true
             ) {
-                LanguageRow()
+                LanguageCard()
 
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.always_on_display),
                     subtitle = "Show clock & subtle notifications on dark screen",
-                    checked = autoConfig.isAodEnabled
+                    icon = Icons.Default.Schedule,
+                    iconTint = Color(0xFF00E676),
+                    checked = autoConfig.isAodEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isAodEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(isAodEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
+                    AodGraphic()
                 }
 
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.oled_pixel_shift),
                     subtitle = "Prevent screen burn-in with micro shifts",
-                    checked = autoConfig.oledBurnInProtection
+                    icon = Icons.Default.Grain,
+                    iconTint = Color(0xFFFFB300),
+                    checked = autoConfig.oledBurnInProtection,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(oledBurnInProtection = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(oledBurnInProtection = it)
-                    automationSettings.updateConfig(autoConfig)
+                    OledPixelShiftGraphic()
                 }
 
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.skip_unlock_screen),
                     subtitle = "Directly unlock device on tap gesture",
-                    checked = autoConfig.isSkipUnlockScreenEnabled
+                    icon = Icons.Default.LockOpen,
+                    iconTint = Color(0xFFAB47BC),
+                    checked = autoConfig.isSkipUnlockScreenEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isSkipUnlockScreenEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(isSkipUnlockScreenEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
+                    SkipUnlockGraphic()
                 }
             }
 
@@ -538,50 +576,70 @@ fun ZenithApp(
                 iconColor = ZenithSecondary,
                 badgeText = "4 Active",
                 badgeColor = ZenithSecondary,
-                isExpanded = false
+                isExpanded = true
             ) {
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.pocket_mode),
-                    subtitle = "Auto-lock screen when device placed in pocket",
-                    checked = autoConfig.isPocketModeEnabled
+                    subtitle = "Auto-lock in pocket",
+                    icon = Icons.Default.Smartphone,
+                    iconTint = Color(0xFF00E676),
+                    checked = autoConfig.isPocketModeEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isPocketModeEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(isPocketModeEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
+                    PocketModeWaveGraphic()
                 }
 
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.flip_to_sleep),
-                    subtitle = "Turn screen face down to activate sleep mode",
-                    checked = autoConfig.isFlipToSleepEnabled
+                    subtitle = "Turn face down to lock",
+                    icon = Icons.Default.ScreenRotation,
+                    iconTint = Color(0xFFAB47BC),
+                    checked = autoConfig.isFlipToSleepEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isFlipToSleepEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(isFlipToSleepEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
+                    FlipToSleepGraphic()
                 }
 
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.shake_to_wake),
-                    subtitle = "Shake device firmly to unlock screen",
-                    checked = autoConfig.isShakeToWakeEnabled
+                    subtitle = "Shake to unlock",
+                    icon = Icons.Default.Vibration,
+                    iconTint = Color(0xFF00E5FF),
+                    checked = autoConfig.isShakeToWakeEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isShakeToWakeEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(isShakeToWakeEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
+                    ShakeToWakeGraphic()
                 }
 
-                ZenithSwitchRow(
+                SmartTriggerCard(
                     title = stringResource(R.string.floating_action_button),
-                    subtitle = "Show quick-access floating trigger lock",
-                    checked = !autoConfig.hideFloatingButton
+                    subtitle = "Quick access button",
+                    icon = Icons.Default.TouchApp,
+                    iconTint = Color(0xFFFFB300),
+                    checked = !autoConfig.hideFloatingButton,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(hideFloatingButton = !it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
                 ) {
-                    autoConfig = autoConfig.copy(hideFloatingButton = !it)
-                    automationSettings.updateConfig(autoConfig)
+                    FloatingButtonGraphic()
                 }
 
                 Text(
                     text = stringResource(R.string.floating_lock_style),
-                    color = ZenithSecondary,
+                    color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 10.dp)
+                    modifier = Modifier.padding(top = 18.dp, bottom = 12.dp)
                 )
 
                 val styles = listOf(
@@ -615,15 +673,15 @@ fun ZenithApp(
                         val isSelected = autoConfig.floatingLockStyle == styleName
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .size(58.dp)
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(
-                                    if (isSelected) ZenithAccent.copy(alpha = 0.15f) else ZenithCardGlow
+                                    if (isSelected) Color(0xFF00E676).copy(alpha = 0.22f) else Color(0xFF0F172A)
                                 )
                                 .border(
-                                    1.5.dp,
-                                    if (isSelected) ZenithAccent else ZenithCardBorder,
-                                    RoundedCornerShape(16.dp)
+                                    if (isSelected) 2.dp else 1.dp,
+                                    if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
+                                    RoundedCornerShape(18.dp)
                                 )
                                 .clickable {
                                     if (isUnlocked) {
@@ -653,19 +711,26 @@ fun ZenithApp(
                             Icon(
                                 painter = painter,
                                 contentDescription = null,
-                                tint = if (isSelected) ZenithAccent else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
-                                modifier = Modifier.size(24.dp)
+                                tint = if (isSelected) Color(0xFF00E676) else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
+                                modifier = Modifier.size(26.dp)
                             )
                             if (!isUnlocked) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = "Locked",
-                                    tint = ZenithAccent,
+                                Box(
                                     modifier = Modifier
-                                        .size(14.dp)
                                         .align(Alignment.BottomEnd)
-                                        .padding(bottom = 4.dp, end = 4.dp)
-                                )
+                                        .padding(4.dp)
+                                        .size(16.dp)
+                                        .background(Color(0xFF0F172A), CircleShape)
+                                        .border(1.dp, Color(0xFFFFB300), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Locked",
+                                        tint = Color(0xFFFFB300),
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -673,10 +738,10 @@ fun ZenithApp(
 
                 Text(
                     text = stringResource(R.string.floating_lock_size),
-                    color = ZenithSecondary,
+                    color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)
                 )
 
                 Slider(
@@ -687,18 +752,18 @@ fun ZenithApp(
                     },
                     valueRange = 0.5f..2.0f,
                     colors = SliderDefaults.colors(
-                        thumbColor = ZenithAccent,
-                        activeTrackColor = ZenithAccent,
-                        inactiveTrackColor = ZenithCardBorder
+                        thumbColor = Color(0xFF00E676),
+                        activeTrackColor = Color(0xFF00E676),
+                        inactiveTrackColor = Color(0xFF1E293B)
                     )
                 )
 
                 Text(
                     text = stringResource(R.string.wake_gesture),
-                    color = ZenithSecondary,
+                    color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(top = 14.dp, bottom = 10.dp)
                 )
 
                 Row(
@@ -710,10 +775,16 @@ fun ZenithApp(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) ZenithAccent else ZenithCardGlow)
-                                .border(1.dp, if (isSelected) ZenithAccent else ZenithCardBorder, RoundedCornerShape(12.dp))
+                                .height(46.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (isSelected) Color(0xFF00E676) else Color(0xFF0F172A)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
+                                    RoundedCornerShape(14.dp)
+                                )
                                 .clickable {
                                     autoConfig = autoConfig.copy(tapsToWake = taps)
                                     automationSettings.updateConfig(autoConfig)
@@ -1099,41 +1170,55 @@ fun EqualizerWaveBar(
 
 @Composable
 fun PermissionBanner(onRequestPermission: () -> Unit) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF2C1010))
-            .border(1.dp, Color(0xFFFF5252), RoundedCornerShape(16.dp))
-            .padding(16.dp)
+            .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onRequestPermission),
-        verticalAlignment = Alignment.CenterVertically
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0A12)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.6f))
     ) {
-        Icon(
-            imageVector = Icons.Default.Warning,
-            contentDescription = null,
-            tint = Color(0xFFFF5252),
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.overlay_permission),
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = stringResource(R.string.tap_to_grant),
-                color = Color(0xFFFFB3B3),
-                fontSize = 12.sp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(Color(0xFFFF5252).copy(alpha = 0.18f), CircleShape)
+                    .border(1.dp, Color(0xFFFF5252).copy(alpha = 0.4f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = Color(0xFFFF5252),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.overlay_permission),
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(R.string.tap_to_grant),
+                    color = Color(0xFFFF8A8A),
+                    fontSize = 12.sp
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color(0xFFFF5252),
+                modifier = Modifier.size(20.dp)
             )
         }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = Color(0xFFFF5252)
-        )
     }
 }
 
@@ -1147,56 +1232,59 @@ fun ImpactCard(
     isRunning: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Card(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(ZenithCard, Color(0xFF09111F))
-                )
-            )
-            .border(1.dp, ZenithCardBorder, RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .clip(RoundedCornerShape(22.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B1324)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1C2D4A))
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(color.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(18.dp)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(color.copy(alpha = 0.16f), CircleShape)
+                        .border(1.dp, color.copy(alpha = 0.35f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = title,
+                    color = Color(0xFF94A3B8),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = title,
-                color = ZenithTextMuted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
+                text = value,
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            // Animated Wave Sparkline Graph
+            AnimatedWaveSparklineGraph(
+                color = color,
+                isRunning = isRunning,
+                cardIndex = barIndex
             )
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = value,
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        
-        // Animated Wave Sparkline Graph
-        AnimatedWaveSparklineGraph(
-            color = color,
-            isRunning = isRunning,
-            cardIndex = barIndex
-        )
     }
 }
 
@@ -1296,6 +1384,142 @@ fun AnimatedWaveSparklineGraph(
     }
 }
 
+
+@Composable
+fun GamificationSection(totalTimeSaved: Long) {
+    val totalHours = (totalTimeSaved / 3600000).toFloat()
+    
+    val (level, levelTitle, currentLevelThreshold, nextLevelThreshold) = when {
+        totalHours < 1 -> Quadruple(0, "ECO NOVICE", 0f, 1f)
+        totalHours < 5 -> Quadruple(1, "ENERGY SAVER", 1f, 5f)
+        totalHours < 10 -> Quadruple(2, "BATTERY GUARDIAN", 5f, 10f)
+        totalHours < 25 -> Quadruple(3, "SOLAR PROTECTOR", 10f, 25f)
+        totalHours < 50 -> Quadruple(4, "GREEN WARRIOR", 25f, 50f)
+        totalHours < 100 -> Quadruple(5, "OLED MASTER", 50f, 100f)
+        else -> Quadruple(6, "ZENITH LEGEND", 100f, 200f)
+    }
+    
+    val progress = ((totalHours - currentLevelThreshold) / (nextLevelThreshold - currentLevelThreshold)).coerceIn(0f, 1f)
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B1324)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1C2D4A))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(Color(0xFFFFD700).copy(alpha = 0.3f), Color(0xFFFFD700).copy(alpha = 0.05f))
+                                ),
+                                CircleShape
+                            )
+                            .border(1.5.dp, Color(0xFFFFD700).copy(alpha = 0.6f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = "Trophy",
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Level $level",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF00E676).copy(alpha = 0.18f), RoundedCornerShape(6.dp))
+                                    .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = levelTitle,
+                                    color = Color(0xFF00E676),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Text(
+                            text = "${String.format("%.1f", totalHours)} Hours Saved Total",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Glowing XP Progress Bar
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Progress to Level ${level + 1}",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        color = Color(0xFF00E676),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E293B))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(fraction = progress)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF00E5FF), Color(0xFF00E676))
+                                )
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
 @Composable
 fun ExpandableConfigSection(
     title: String,
@@ -1309,188 +1533,84 @@ fun ExpandableConfigSection(
 ) {
     var expanded by remember { mutableStateOf(isExpanded) }
     
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(ZenithCard)
-            .border(1.dp, ZenithCardBorder, RoundedCornerShape(20.dp))
-            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(22.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B1324)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1C2D4A))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .background(iconColor.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = subtitle,
-                    color = ZenithTextMuted,
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .background(badgeColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = badgeText,
-                    color = badgeColor,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = ZenithTextMuted,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        
-        AnimatedVisibility(visible = expanded) {
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                HorizontalDivider(color = ZenithCardBorder, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(8.dp))
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-fun GamificationSection(totalTimeSaved: Long) {
-    val totalHours = (totalTimeSaved / 3600000).toFloat()
-    
-    val (level, currentLevelThreshold, nextLevelThreshold) = when {
-        totalHours < 1 -> Triple(0, 0f, 1f)
-        totalHours < 5 -> Triple(1, 1f, 5f)
-        totalHours < 10 -> Triple(2, 5f, 10f)
-        totalHours < 25 -> Triple(3, 10f, 25f)
-        totalHours < 50 -> Triple(4, 25f, 50f)
-        totalHours < 100 -> Triple(5, 50f, 100f)
-        else -> Triple(6, 100f, 200f)
-    }
-    
-    val progress = ((totalHours - currentLevelThreshold) / (nextLevelThreshold - currentLevelThreshold)).coerceIn(0f, 1f)
-    
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(ZenithCard, Color(0xFF0D1525))
-                )
-            )
-            .border(1.dp, ZenithCardBorder, RoundedCornerShape(20.dp))
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(iconColor.copy(alpha = 0.16f), CircleShape)
+                        .border(1.dp, iconColor.copy(alpha = 0.35f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Level $level",
-                        color = ZenithAccent,
-                        fontSize = 18.sp,
+                        text = title,
+                        color = Color.White,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .background(ZenithSecondary.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (level == 0) "ECO NOVICE" else "ECO SAVER",
-                            color = ZenithSecondary,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Text(
+                        text = subtitle,
+                        color = Color(0xFF94A3B8),
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp
+                    )
                 }
-                Text(
-                    text = "${String.format("%.1f", totalHours)} Hours Saved Total",
-                    color = ZenithTextMuted,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color(0xFFFFD700).copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
+                Box(
+                    modifier = Modifier
+                        .background(badgeColor.copy(alpha = 0.16f), RoundedCornerShape(8.dp))
+                        .border(1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = badgeText,
+                        color = badgeColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Icon(
-                    imageVector = Icons.Default.EmojiEvents,
-                    contentDescription = "Trophy",
-                    tint = if (level > 0) Color(0xFFFFD700) else Color.Gray,
-                    modifier = Modifier.size(22.dp)
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ChevronRight,
+                    contentDescription = if (expanded) "Collapse section" else "Expand section",
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(20.dp)
                 )
             }
-        }
-        
-        Spacer(modifier = Modifier.height(14.dp))
-        
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = ZenithAccent,
-            trackColor = ZenithCardBorder
-        )
-        
-        Spacer(modifier = Modifier.height(6.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "${currentLevelThreshold.toInt()}h",
-                color = ZenithTextMuted,
-                fontSize = 11.sp
-            )
-            Text(
-                text = "${(nextLevelThreshold - totalHours).coerceAtLeast(0f).toInt()}h to next level",
-                color = ZenithTextMuted,
-                fontSize = 11.sp
-            )
+            
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    HorizontalDivider(color = Color(0xFF1C2D4A), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    content()
+                }
+            }
         }
     }
 }
@@ -1531,8 +1651,8 @@ fun ZenithSwitchRow(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = ZenithAccent,
-                uncheckedThumbColor = ZenithTextMuted,
+                checkedTrackColor = Color(0xFF00E676),
+                uncheckedThumbColor = Color(0xFF64748B),
                 uncheckedTrackColor = Color(0xFF1E293B),
                 uncheckedBorderColor = Color.Transparent
             )
@@ -1697,5 +1817,642 @@ fun setAppLocale(context: Context, languageCode: String) {
     resources.updateConfiguration(config, resources.displayMetrics)
     if (context is android.app.Activity) {
         context.recreate()
+    }
+}
+
+@Composable
+fun SmartTriggerCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconTint: Color,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    bottomContent: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF0C1322)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1B2C46))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .background(iconTint.copy(alpha = 0.18f), CircleShape)
+                            .border(1.dp, iconTint.copy(alpha = 0.40f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = title,
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subtitle,
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Switch(
+                    checked = checked,
+                    onCheckedChange = onCheckedChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF00E676),
+                        uncheckedThumbColor = Color(0xFF64748B),
+                        uncheckedTrackColor = Color(0xFF1E293B),
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            bottomContent()
+        }
+    }
+}
+
+@Composable
+fun PocketModeWaveGraphic() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    androidx.compose.foundation.Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
+    ) {
+        val width = size.width
+        val height = size.height
+        val path = Path()
+        val points = 40
+        for (i in 0..points) {
+            val normX = i.toFloat() / points
+            val x = normX * width
+            val wave = kotlin.math.sin((normX * 3.5 * Math.PI + phase).toDouble()).toFloat()
+            val y = height / 2 + wave * 9.dp.toPx()
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(
+            path = path,
+            color = Color(0xFF00E676),
+            style = Stroke(width = 2.2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
+fun FlipToSleepGraphic() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(38.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .width(42.dp)
+                .height(26.dp)
+                .background(Color(0xFF8B5CF6).copy(alpha = 0.22f), RoundedCornerShape(7.dp))
+                .border(1.5.dp, Color(0xFFAB47BC), RoundedCornerShape(7.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(14.dp)
+                    .height(2.dp)
+                    .background(Color(0xFFAB47BC), CircleShape)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(18.dp))
+
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(32.dp, 20.dp)) {
+            val path = Path().apply {
+                moveTo(2.dp.toPx(), 16.dp.toPx())
+                cubicTo(8.dp.toPx(), 2.dp.toPx(), 24.dp.toPx(), 2.dp.toPx(), 28.dp.toPx(), 14.dp.toPx())
+            }
+            drawPath(
+                path = path,
+                color = Color(0xFFAB47BC),
+                style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
+            val tipPath = Path().apply {
+                moveTo(22.dp.toPx(), 10.dp.toPx())
+                lineTo(29.dp.toPx(), 15.dp.toPx())
+                lineTo(24.dp.toPx(), 18.dp.toPx())
+            }
+            drawPath(
+                path = tipPath,
+                color = Color(0xFFAB47BC),
+                style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(18.dp))
+
+        Box(
+            modifier = Modifier
+                .width(42.dp)
+                .height(26.dp)
+                .background(Color(0xFF3B0764).copy(alpha = 0.35f), RoundedCornerShape(7.dp))
+                .border(1.5.dp, Color(0xFF6B21A8).copy(alpha = 0.7f), RoundedCornerShape(7.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(32.dp)
+                    .height(18.dp)
+                    .background(Color(0xFF0F0728), RoundedCornerShape(4.dp))
+            )
+        }
+    }
+}
+
+@Composable
+fun ShakeToWakeGraphic() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(34.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp, 22.dp)) {
+            val path = Path().apply {
+                moveTo(12.dp.toPx(), 2.dp.toPx())
+                cubicTo(2.dp.toPx(), 6.dp.toPx(), 2.dp.toPx(), 16.dp.toPx(), 12.dp.toPx(), 20.dp.toPx())
+            }
+            drawPath(path, color = Color(0xFF00E5FF), style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Box(
+            modifier = Modifier
+                .width(22.dp)
+                .height(28.dp)
+                .background(Color(0xFF00E5FF).copy(alpha = 0.2f), RoundedCornerShape(5.dp))
+                .border(1.5.dp, Color(0xFF00E5FF), RoundedCornerShape(5.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(5.dp)
+                    .background(Color(0xFF00E5FF), CircleShape)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp, 22.dp)) {
+            val path = Path().apply {
+                moveTo(2.dp.toPx(), 2.dp.toPx())
+                cubicTo(12.dp.toPx(), 6.dp.toPx(), 12.dp.toPx(), 16.dp.toPx(), 2.dp.toPx(), 20.dp.toPx())
+            }
+            drawPath(path, color = Color(0xFF00E5FF), style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        }
+    }
+}
+
+@Composable
+fun FloatingButtonGraphic() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(34.dp)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier
+                .weight(1f)
+                .height(20.dp)
+        ) {
+            val width = size.width
+            val height = size.height
+            val path = Path()
+            val points = 32
+            for (i in 0..points) {
+                val normX = i.toFloat() / points
+                val x = normX * width
+                val wave = kotlin.math.sin((normX * 3.2 * Math.PI).toDouble()).toFloat()
+                val y = height / 2 + wave * 4.dp.toPx()
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(
+                path = path,
+                color = Color(0xFFFFB300),
+                style = Stroke(
+                    width = 2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(Color(0xFFFFB300).copy(alpha = 0.15f), CircleShape)
+                .border(1.5.dp, Color(0xFFFFB300), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(Color(0xFF00E676), CircleShape)
+                    .border(1.dp, Color.White, CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
+fun LanguageCard() {
+    val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+    
+    val languages = listOf(
+        "en" to "English",
+        "so" to "Somali",
+        "ar" to "العربية",
+        "bn" to "বাংলা",
+        "zh" to "中文",
+        "es" to "Español",
+        "fr" to "Français",
+        "de" to "Deutsch",
+        "hi" to "हिन्दी",
+        "id" to "Bahasa Indonesia",
+        "it" to "Italiano",
+        "ja" to "日本語",
+        "ko" to "한국어",
+        "mr" to "मराठी",
+        "pa" to "ਪੰਜਾਬੀ",
+        "pt" to "Português",
+        "ru" to "Русский",
+        "te" to "తెలుగు",
+        "tr" to "Türkçe",
+        "ur" to "اردو",
+        "vi" to "Tiếng Việt",
+        "sw" to "Kiswahili",
+        "fa" to "فارسی",
+        "ta" to "தமிழ்",
+        "gu" to "ગુજરાતી"
+    )
+
+    val currentCode = context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
+        .getString("app_language", "en") ?: "en"
+    val currentName = languages.find { it.first == currentCode }?.second ?: "English"
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1322)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1B2C46))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .background(Color(0xFF00E5FF).copy(alpha = 0.18f), CircleShape)
+                            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.40f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Language settings icon",
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.language),
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = stringResource(R.string.select_language),
+                            color = Color(0xFF94A3B8),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Box {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF00E5FF).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .clickable { expanded = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = currentName,
+                            color = Color(0xFF00E5FF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Open language menu",
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Color(0xFF0F172A)).heightIn(max = 300.dp)
+                    ) {
+                        languages.forEach { (code, name) ->
+                            DropdownMenuItem(
+                                text = { Text(name, color = Color.White, fontSize = 13.sp) },
+                                onClick = {
+                                    expanded = false
+                                    setAppLocale(context, code)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            LanguageGraphic()
+        }
+    }
+}
+
+@Composable
+fun LanguageGraphic() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(28.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val sampleTags = listOf("English", "Somali", "العربية", "Español", "Deutsch")
+        sampleTags.forEachIndexed { index, tag ->
+            Box(
+                modifier = Modifier
+                    .background(
+                        if (index == 0) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF1E293B),
+                        CircleShape
+                    )
+                    .border(
+                        1.dp,
+                        if (index == 0) Color(0xFF00E5FF).copy(alpha = 0.5f) else Color(0xFF334155),
+                        CircleShape
+                    )
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = tag,
+                    color = if (index == 0) Color(0xFF00E5FF) else Color(0xFF94A3B8),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AodGraphic() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .background(Color(0xFF050810), RoundedCornerShape(10.dp))
+            .border(1.dp, Color(0xFF131F33), RoundedCornerShape(10.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(Color(0xFF00E676), CircleShape)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "10:09 AM",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Mon, Oct 24",
+                    color = Color(0xFF64748B),
+                    fontSize = 10.sp
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.BatteryChargingFull,
+                    contentDescription = "Battery charging icon",
+                    tint = Color(0xFF00E676),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "88%",
+                    color = Color(0xFF00E676),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun OledPixelShiftGraphic() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val shiftX by infiniteTransition.animateFloat(
+        initialValue = -8f,
+        targetValue = 8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    androidx.compose.foundation.Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
+    ) {
+        val width = size.width
+        val height = size.height
+        
+        val rows = 3
+        val cols = 14
+        val spacingX = width / (cols + 1)
+        val spacingY = height / (rows + 1)
+
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                val cx = (c + 1) * spacingX + (if (r % 2 == 0) shiftX else -shiftX)
+                val cy = (r + 1) * spacingY
+                
+                val pixelColor = when ((r + c) % 3) {
+                    0 -> Color(0xFFFFB300)
+                    1 -> Color(0xFF00E676)
+                    else -> Color(0xFF00E5FF)
+                }
+                
+                drawCircle(
+                    color = pixelColor.copy(alpha = 0.75f),
+                    radius = 2.5.dp.toPx(),
+                    center = androidx.compose.ui.geometry.Offset(cx, cy)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SkipUnlockGraphic() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(34.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.TouchApp,
+            contentDescription = "Tap gesture icon",
+            tint = Color(0xFFAB47BC),
+            modifier = Modifier.size(20.dp)
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier
+                .width(40.dp)
+                .height(16.dp)
+        ) {
+            val width = size.width
+            val height = size.height
+            val path = Path().apply {
+                moveTo(0f, height / 2)
+                lineTo(width - 6.dp.toPx(), height / 2)
+            }
+            drawPath(
+                path = path,
+                color = Color(0xFFAB47BC),
+                style = Stroke(
+                    width = 2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
+                )
+            )
+            val arrowHead = Path().apply {
+                moveTo(width - 8.dp.toPx(), height / 2 - 4.dp.toPx())
+                lineTo(width, height / 2)
+                lineTo(width - 8.dp.toPx(), height / 2 + 4.dp.toPx())
+            }
+            drawPath(
+                path = arrowHead,
+                color = Color(0xFFAB47BC),
+                style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .background(Color(0xFF00E676).copy(alpha = 0.2f), CircleShape)
+                .border(1.5.dp, Color(0xFF00E676), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Unlocked success icon",
+                tint = Color(0xFF00E676),
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }
