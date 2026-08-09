@@ -244,7 +244,7 @@ fun ZenithApp(
     isServiceRunning: Boolean,
     totalTimeSaved: Long,
     usageCount: Int,
-    onUnlockPremiumStyle: (String, () -> Unit, () -> Unit, () -> Unit) -> Unit
+    onUnlockPremiumStyle: (String, () -> Unit, () -> Unit, (String) -> Unit) -> (() -> Unit)?
 ) {
     val context = LocalContext.current
     val automationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
@@ -252,7 +252,56 @@ fun ZenithApp(
     val scrollState = rememberScrollState()
     
     var showAdLoading by remember { mutableStateOf(false) }
+    var cancelAdLoad by remember { mutableStateOf<(() -> Unit)?>(null) }
     val estimatedMah = ((totalTimeSaved / (1000f * 60f * 60f)) * 200f).toInt()
+    
+    if (showAdLoading) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = {
+            cancelAdLoad?.invoke()
+            showAdLoading = false
+        }) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF1E293B))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Color(0xFF00E676)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Loading Ad...",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.material3.IconButton(
+                        onClick = {
+                            cancelAdLoad?.invoke()
+                            showAdLoading = false
+                        },
+                        modifier = Modifier
+                            .background(Color(0xFFE53935).copy(alpha = 0.2f), CircleShape)
+                            .border(1.dp, Color(0xFFE53935), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel Loading",
+                            tint = Color(0xFFE53935)
+                        )
+                    }
+                }
+            }
+        }
+    }
     
     Box(
         modifier = Modifier
@@ -520,7 +569,7 @@ fun ZenithApp(
                 iconColor = ZenithAccent,
                 badgeText = "3 Active",
                 badgeColor = ZenithAccent,
-                isExpanded = true
+                isExpanded = false
             ) {
                 LanguageCard()
 
@@ -576,7 +625,7 @@ fun ZenithApp(
                 iconColor = ZenithSecondary,
                 badgeText = "4 Active",
                 badgeColor = ZenithSecondary,
-                isExpanded = true
+                isExpanded = false
             ) {
                 SmartTriggerCard(
                     title = stringResource(R.string.pocket_mode),
@@ -688,18 +737,18 @@ fun ZenithApp(
                                         autoConfig = autoConfig.copy(floatingLockStyle = styleName)
                                         automationSettings.updateConfig(autoConfig)
                                     } else {
-                                        onUnlockPremiumStyle(
+                                        cancelAdLoad = onUnlockPremiumStyle(
                                             styleName,
                                             { showAdLoading = true },
                                             {
                                                 showAdLoading = false
                                                 autoConfig = automationSettings.getConfig()
                                             },
-                                            {
+                                            { errorMsg ->
                                                 showAdLoading = false
                                                 android.widget.Toast.makeText(
                                                     context,
-                                                    "Connect to internet to unlock premium icon.",
+                                                    errorMsg,
                                                     android.widget.Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -1532,6 +1581,19 @@ fun ExpandableConfigSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     var expanded by remember { mutableStateOf(isExpanded) }
+    
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                expanded = isExpanded
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     
     Card(
         modifier = Modifier
