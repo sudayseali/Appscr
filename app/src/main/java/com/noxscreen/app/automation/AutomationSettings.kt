@@ -26,7 +26,12 @@ data class AutomationConfig(
     val isUsageLimitsEnabled: Boolean = false,
     val usageLimitDurationMinutes: Int = 15,
     val blockedApps: Set<String> = emptySet(),
-    val unlockedStyles: Set<String> = setOf("lock", "moon", "circle", "power")
+    val unlockedStyles: Set<String> = setOf("lock", "moon", "circle", "power"),
+    val isScheduleEnabled: Boolean = false,
+    val scheduleStartTimeHour: Int = 22,
+    val scheduleStartTimeMinute: Int = 0,
+    val scheduleEndTimeHour: Int = 7,
+    val scheduleEndTimeMinute: Int = 0
 )
 
 class AutomationSettings(private val context: Context) {
@@ -56,7 +61,12 @@ class AutomationSettings(private val context: Context) {
             isUsageLimitsEnabled = prefs.getBoolean("is_usage_limits_enabled", false),
             usageLimitDurationMinutes = prefs.getInt("usage_limit_duration_min", 15),
             blockedApps = prefs.getStringSet("blocked_apps", emptySet()) ?: emptySet(),
-            unlockedStyles = prefs.getStringSet("unlocked_styles", setOf("lock", "moon", "circle", "power")) ?: setOf("lock", "moon", "circle", "power")
+            unlockedStyles = prefs.getStringSet("unlocked_styles", setOf("lock", "moon", "circle", "power")) ?: setOf("lock", "moon", "circle", "power"),
+            isScheduleEnabled = prefs.getBoolean("is_schedule_enabled", false),
+            scheduleStartTimeHour = prefs.getInt("schedule_start_hour", 22),
+            scheduleStartTimeMinute = prefs.getInt("schedule_start_minute", 0),
+            scheduleEndTimeHour = prefs.getInt("schedule_end_hour", 7),
+            scheduleEndTimeMinute = prefs.getInt("schedule_end_minute", 0)
         )
     }
 
@@ -85,8 +95,13 @@ class AutomationSettings(private val context: Context) {
             .putInt("usage_limit_duration_min", config.usageLimitDurationMinutes)
             .putStringSet("blocked_apps", config.blockedApps)
             .putStringSet("unlocked_styles", config.unlockedStyles)
+            .putBoolean("is_schedule_enabled", config.isScheduleEnabled)
+            .putInt("schedule_start_hour", config.scheduleStartTimeHour)
+            .putInt("schedule_start_minute", config.scheduleStartTimeMinute)
+            .putInt("schedule_end_hour", config.scheduleEndTimeHour)
+            .putInt("schedule_end_minute", config.scheduleEndTimeMinute)
             .apply()
-            
+        
         val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")
         intent.setPackage(context.packageName)
         context.sendBroadcast(intent)
@@ -111,8 +126,6 @@ class AutomationSettings(private val context: Context) {
     fun setStationaryDuration(seconds: Int) {
         prefs.edit().putInt("stationary_duration_sec", seconds).apply()
     }
-
-
 
     fun setDarkTintEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("is_dark_tint_enabled", enabled).apply()

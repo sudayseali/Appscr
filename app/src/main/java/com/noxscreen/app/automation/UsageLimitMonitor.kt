@@ -51,7 +51,8 @@ class UsageLimitMonitor(
 
     private fun checkUsageLimits() {
         val config = automationSettings.getConfig()
-        if (!config.isUsageLimitsEnabled || config.blockedApps.isEmpty()) {
+        
+        if (!config.isUsageLimitsEnabled && !config.isScheduleEnabled || config.blockedApps.isEmpty()) {
             isCurrentlyBlocked = false
             return
         }
@@ -97,22 +98,56 @@ class UsageLimitMonitor(
             currentSessionStartTime = System.currentTimeMillis()
         }
 
-        val currentSessionDuration = System.currentTimeMillis() - currentSessionStartTime
-        val totalTimeMs = (appUsageTimes[foregroundApp] ?: 0L) + currentSessionDuration
-        val limitMs = config.usageLimitDurationMinutes * 60 * 1000L
-        val remainingMs = limitMs - totalTimeMs
+        var shouldBlock = false
+        var warningMessage = ""
 
-        if (remainingMs <= 0) {
+        // Check Schedule First
+        if (config.isScheduleEnabled) {
+            val calendar = Calendar.getInstance()
+            val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+            val currentMinute = calendar.get(Calendar.MINUTE)
+            val currentTotalMinutes = currentHour * 60 + currentMinute
+            
+            val startTotalMinutes = config.scheduleStartTimeHour * 60 + config.scheduleStartTimeMinute
+            val endTotalMinutes = config.scheduleEndTimeHour * 60 + config.scheduleEndTimeMinute
+            
+            val isWithinSchedule = if (startTotalMinutes <= endTotalMinutes) {
+                currentTotalMinutes in startTotalMinutes until endTotalMinutes
+            } else {
+                // Crosses midnight
+                currentTotalMinutes >= startTotalMinutes || currentTotalMinutes < endTotalMinutes
+            }
+            
+            if (isWithinSchedule) {
+                shouldBlock = true
+            }
+        }
+
+        // Check Usage Limit
+        if (!shouldBlock && config.isUsageLimitsEnabled) {
+            val currentSessionDuration = System.currentTimeMillis() - currentSessionStartTime
+            val totalTimeMs = (appUsageTimes[foregroundApp] ?: 0L) + currentSessionDuration
+            val limitMs = config.usageLimitDurationMinutes * 60 * 1000L
+            val remainingMs = limitMs - totalTimeMs
+            
+            if (remainingMs <= 0) {
+                shouldBlock = true
+            } else if (remainingMs in 1..10000) { // 10 seconds soft warning
+                warningMessage = "⚠️ Waqtigaagu wuu dhamaanayaa (10s left)!"
+            }
+        }
+
+        if (shouldBlock) {
             if (!isCurrentlyBlocked) {
                 isCurrentlyBlocked = true
                 triggerBlockAction()
             } else {
                 triggerBlockAction() // keep kicking them out
             }
-        } else if (remainingMs in 1..10000) { // 10 seconds soft warning
+        } else if (warningMessage.isNotEmpty()) {
             if (!hasShownWarning) {
                 hasShownWarning = true
-                Toast.makeText(context, "⚠️ Waqtigaagu wuu dhamaanayaa (10s left)!", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, warningMessage, Toast.LENGTH_LONG).show()
             }
         } else {
             isCurrentlyBlocked = false
@@ -142,7 +177,6 @@ class UsageLimitMonitor(
         }
 
         // C. Display Control (Overlay/Dim/Lock)
-        // We delay the blackout slightly to make it feel deliberate, not jarring
         handler.postDelayed({
             onTriggerBlock()
         }, 500)

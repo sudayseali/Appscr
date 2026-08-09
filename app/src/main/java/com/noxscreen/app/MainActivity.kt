@@ -920,6 +920,7 @@ fun ZenithApp(
                         Text("Grant Usage Access", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 } else {
+                    
                     ZenithSwitchRow(
                         title = "Enable App Limits",
                         subtitle = "Lock distraction apps when limit is reached",
@@ -928,6 +929,16 @@ fun ZenithApp(
                         autoConfig = autoConfig.copy(isUsageLimitsEnabled = it)
                         automationSettings.updateConfig(autoConfig)
                     }
+
+                    ZenithSwitchRow(
+                        title = "Enable Schedule Limits",
+                        subtitle = "Lock distraction apps during scheduled times",
+                        checked = autoConfig.isScheduleEnabled
+                    ) {
+                        autoConfig = autoConfig.copy(isScheduleEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
+
                     if (autoConfig.isUsageLimitsEnabled) {
                         Text(
                             text = "Limit: ${autoConfig.usageLimitDurationMinutes} minutes",
@@ -950,36 +961,101 @@ fun ZenithApp(
                                 inactiveTrackColor = ZenithCardBorder
                             )
                         )
+                    }
+
+                    if (autoConfig.isScheduleEnabled) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
+                                Text("Start Time", color = ZenithTextMuted, fontSize = 12.sp)
+                                Button(
+                                    onClick = {
+                                        android.app.TimePickerDialog(
+                                            context,
+                                            { _, hour, minute ->
+                                                autoConfig = autoConfig.copy(scheduleStartTimeHour = hour, scheduleStartTimeMinute = minute)
+                                                automationSettings.updateConfig(autoConfig)
+                                            },
+                                            autoConfig.scheduleStartTimeHour,
+                                            autoConfig.scheduleStartTimeMinute,
+                                            true
+                                        ).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = String.format("%02d:%02d", autoConfig.scheduleStartTimeHour, autoConfig.scheduleStartTimeMinute),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                                Text("End Time", color = ZenithTextMuted, fontSize = 12.sp)
+                                Button(
+                                    onClick = {
+                                        android.app.TimePickerDialog(
+                                            context,
+                                            { _, hour, minute ->
+                                                autoConfig = autoConfig.copy(scheduleEndTimeHour = hour, scheduleEndTimeMinute = minute)
+                                                automationSettings.updateConfig(autoConfig)
+                                            },
+                                            autoConfig.scheduleEndTimeHour,
+                                            autoConfig.scheduleEndTimeMinute,
+                                            true
+                                        ).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = String.format("%02d:%02d", autoConfig.scheduleEndTimeHour, autoConfig.scheduleEndTimeMinute),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (autoConfig.isUsageLimitsEnabled || autoConfig.isScheduleEnabled) {
+                        var showAppSelection by remember { mutableStateOf(false) }
+
+                        if (showAppSelection) {
+                            com.noxscreen.app.ui.AppSelectionDialog(
+                                initialSelectedApps = autoConfig.blockedApps,
+                                onDismissRequest = { showAppSelection = false },
+                                onAppsSelected = { apps ->
+                                    autoConfig = autoConfig.copy(blockedApps = apps)
+                                    automationSettings.updateConfig(autoConfig)
+                                    showAppSelection = false
+                                }
+                            )
+                        }
 
                         Button(
-                            onClick = {
-                                val newBlockedApps = if (autoConfig.blockedApps.isEmpty()) {
-                                    setOf("com.google.android.youtube", "com.android.chrome", "com.facebook.katana", "com.instagram.android", "com.zhiliaoapp.musically", "com.snapchat.android", "com.whatsapp", "com.twitter.android", "com.google.android.apps.photos", "com.sec.android.gallery3d", "com.android.gallery3d")
-                                } else {
-                                    emptySet<String>()
-                                }
-                                autoConfig = autoConfig.copy(blockedApps = newBlockedApps)
-                                automationSettings.updateConfig(autoConfig)
-                            },
+                            onClick = { showAppSelection = true },
                             colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
                         ) {
                             Text(
-                                text = if (autoConfig.blockedApps.isEmpty()) "Block Distraction Apps" else "Unblock All Apps",
+                                text = "Select Apps to Block",
                                 color = ZenithAccent,
                                 fontWeight = FontWeight.Bold
                             )
                         }
+
                         if (autoConfig.blockedApps.isNotEmpty()) {
                             Text(
-                                text = "Blocked: ${autoConfig.blockedApps.size} apps (Socials, Video & Gallery)",
+                                text = "Blocked: ${autoConfig.blockedApps.size} apps",
                                 color = ZenithTextMuted,
                                 fontSize = 11.sp,
                                 modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                     }
+
                 }
             }
         }
