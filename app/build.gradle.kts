@@ -14,6 +14,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
+    
     applicationId = "com.noxscreen.app"
     minSdk = 24
     targetSdk = 36
@@ -140,3 +141,4 @@ dependencies {
   // "ksp"(libs.androidx.room.compiler)
   // "ksp"(libs.moshi.kotlin.codegen)
 }
+base { archivesName.set("noxscreen") }

@@ -1,0 +1,7 @@
+android {
+    applicationVariants.all {
+        outputs.all {
+            outputFileName = "noxscreen-${buildType.name}.apk"
+        }
+    }
+}
