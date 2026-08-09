@@ -13,6 +13,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -58,6 +59,7 @@ class BlackScreenService : Service() {
     private var aodBatteryTextView: TextView? = null
     private var aodStatusTextView: TextView? = null
     private var aodDateTextView: TextView? = null
+    private var aodQuoteTextView: TextView? = null
     private var aodContainer: View? = null
     private var unlockButton: View? = null
     private var tapCount = 0
@@ -89,6 +91,19 @@ class BlackScreenService : Service() {
     }
     
     private var blackoutStartTime = 0L
+    private var currentQuote = ""
+    
+    private val quotes = listOf(
+        "Focus on the journey, not the destination.",
+        "Your focus determines your reality.",
+        "Stay focused, stay humble.",
+        "Where focus goes, energy flows.",
+        "Deep work is the superpower of the 21st century.",
+        "Disconnect to reconnect.",
+        "One task at a time.",
+        "Be present.",
+        "Silence is golden."
+    )
 
     private val channelId = "BlackScreenChannel"
     private val notificationId = 1
@@ -318,6 +333,9 @@ class BlackScreenService : Service() {
             aodContainer?.translationX = 0f
             aodContainer?.translationY = 0f
         }
+        
+        if (currentQuote.isEmpty()) currentQuote = quotes.random()
+        aodQuoteTextView?.text = currentQuote
     }
 
     private fun getCurrentFormattedTime(): String {
@@ -362,6 +380,15 @@ class BlackScreenService : Service() {
             }
             topContainer.addView(aodBatteryTextView)
 
+            aodQuoteTextView = TextView(this@BlackScreenService).apply {
+                setTextColor(Color.parseColor("#AAAAAA"))
+                gravity = Gravity.CENTER
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.ITALIC)
+                setPadding(40, 60, 40, 0)
+            }
+            topContainer.addView(aodQuoteTextView)
+
             addView(topContainer, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, 
                 FrameLayout.LayoutParams.WRAP_CONTENT
@@ -372,12 +399,16 @@ class BlackScreenService : Service() {
             // Bottom UNLOCK button
             unlockButton = TextView(this@BlackScreenService).apply {
                 text = "UNLOCK"
-                setTextColor(Color.WHITE)
+                setTextColor(Color.BLACK)
+                val bg = GradientDrawable()
+                bg.setColor(Color.WHITE)
+                bg.cornerRadius = 60f
+                background = bg
                 gravity = Gravity.CENTER
-                textSize = 14f
+                textSize = 16f
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 letterSpacing = 0.1f
-                setPadding(0, 40, 0, 40)
+                setPadding(80, 40, 80, 40)
                 visibility = View.GONE
                 
                 setOnClickListener {
@@ -520,6 +551,7 @@ class BlackScreenService : Service() {
 
                 // Always start pure black
                 isUnlockScreenVisible = false
+                currentQuote = quotes.random()
                 tapCount = 0
                 if (config.isAodEnabled) {
                     aodContainer?.visibility = View.VISIBLE
