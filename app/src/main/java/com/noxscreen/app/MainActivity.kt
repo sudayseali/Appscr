@@ -49,6 +49,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.noxscreen.app.ui.theme.MyApplicationTheme
+import com.noxscreen.app.ui.theme.*
 import com.noxscreen.app.automation.AutomationConfig
 
 class MainActivity : ComponentActivity() {
@@ -224,16 +225,7 @@ class MainActivity : ComponentActivity() {
 }
 
 // Dark Luxury Premium Theme Colors for NoxScreen Pro
-val ZenithBackgroundStart = Color(0xFF020612)
-val ZenithBackgroundEnd = Color(0xFF091122)
-val ZenithCard = Color(0xFF0F172A)
-val ZenithCardGlow = Color(0xFF16233B)
-val ZenithCardBorder = Color(0xFF1E293B)
-val ZenithAccent = Color(0xFF00E676) // Glowing Emerald
-val ZenithAccentGlow = Color(0xFF00FF88)
-val ZenithSecondary = Color(0xFF7C4DFF) // Neon Violet
-val ZenithCyan = Color(0xFF00E5FF) // Cyber Cyan
-val ZenithTextMuted = Color(0xFF94A3B8)
+// Colors moved to Color.kt
 
 @Composable
 fun ZenithApp(
@@ -256,51 +248,12 @@ fun ZenithApp(
     val estimatedMah = ((totalTimeSaved / (1000f * 60f * 60f)) * 200f).toInt()
     
     if (showAdLoading) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = {
-            cancelAdLoad?.invoke()
-            showAdLoading = false
-        }) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF1E293B))
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        color = Color(0xFF00E676)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Loading Ad...",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    androidx.compose.material3.IconButton(
-                        onClick = {
-                            cancelAdLoad?.invoke()
-                            showAdLoading = false
-                        },
-                        modifier = Modifier
-                            .background(Color(0xFFE53935).copy(alpha = 0.2f), CircleShape)
-                            .border(1.dp, Color(0xFFE53935), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cancel Loading",
-                            tint = Color(0xFFE53935)
-                        )
-                    }
-                }
+        com.noxscreen.app.ui.LoadingAdDialog(
+            onDismissRequest = {
+                cancelAdLoad?.invoke()
+                showAdLoading = false
             }
-        }
+        )
     }
     
     Box(
@@ -331,7 +284,9 @@ fun ZenithApp(
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
+                .widthIn(max = 600.dp)
+                .align(Alignment.TopCenter)
                 .verticalScroll(scrollState)
                 .padding(top = 52.dp, bottom = 140.dp, start = 20.dp, end = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -584,7 +539,18 @@ fun ZenithApp(
                         automationSettings.updateConfig(autoConfig)
                     }
                 ) {
-                    AodGraphic()
+                    Column {
+                        AodGraphic()
+                        if (autoConfig.isAodEnabled) {
+                            com.noxscreen.app.ui.ClockStyleSelector(
+                                selectedStyle = autoConfig.clockStyle,
+                                onStyleSelected = { newStyle ->
+                                    autoConfig = autoConfig.copy(clockStyle = newStyle)
+                                    automationSettings.updateConfig(autoConfig)
+                                }
+                            )
+                        }
+                    }
                 }
 
                 SmartTriggerCard(

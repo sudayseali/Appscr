@@ -318,11 +318,43 @@ class BlackScreenService : Service() {
         val timeSdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
         val dateSdf = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
         val now = java.util.Date()
-        aodClockTextView?.text = timeSdf.format(now)
+        
+        val config = smartAutomationManager.settings.getConfig()
+        
+        when (config.clockStyle) {
+            "huge" -> {
+                aodClockTextView?.textSize = 110f
+                aodClockTextView?.setTextColor(android.graphics.Color.parseColor("#82B1FF"))
+                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-thin", android.graphics.Typeface.NORMAL)
+            }
+            "analog" -> {
+                aodClockTextView?.textSize = 72f
+                aodClockTextView?.setTextColor(android.graphics.Color.parseColor("#FFD54F"))
+                aodClockTextView?.typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.ITALIC)
+            }
+            "dino" -> {
+                aodClockTextView?.textSize = 60f
+                aodClockTextView?.setTextColor(android.graphics.Color.parseColor("#69F0AE"))
+                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
+            }
+            else -> {
+                aodClockTextView?.textSize = 64f
+                aodClockTextView?.setTextColor(android.graphics.Color.WHITE)
+                aodClockTextView?.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+        }
+        
+        if (config.clockStyle == "dino") {
+            aodClockTextView?.text = "🦖\n${timeSdf.format(now)}"
+        } else if (config.clockStyle == "analog") {
+            aodClockTextView?.text = "🕰️\n${timeSdf.format(now)}"
+        } else {
+            aodClockTextView?.text = timeSdf.format(now)
+        }
+        
         aodDateTextView?.text = dateSdf.format(now)
         aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
         
-        val config = smartAutomationManager.settings.getConfig()
         if (config.oledBurnInProtection) {
             val random = java.util.Random()
             val xOffset = random.nextInt(31) - 15 // -15 to +15 pixels
