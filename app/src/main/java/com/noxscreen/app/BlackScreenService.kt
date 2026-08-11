@@ -113,6 +113,7 @@ class BlackScreenService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        com.noxscreen.app.automation.FloatingLockEntitlementManager(this).validateActiveStyle()
         
         val filter = IntentFilter("com.noxscreen.app.SETTINGS_UPDATED")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

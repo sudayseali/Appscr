@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.noxscreen.app.automation.FloatingLockEntitlementManager(this).validateActiveStyle()
         
         val prefs = getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
         val savedLang = prefs.getString("app_language", "en") ?: "en"
@@ -680,27 +681,37 @@ fun ZenithApp(
                     "bolt" to androidx.compose.ui.res.painterResource(R.drawable.ic_bolt),
                     "favorite" to androidx.compose.ui.res.painterResource(R.drawable.ic_favorite)
                 )
-
+                val entitlementManager = remember { com.noxscreen.app.automation.FloatingLockEntitlementManager(context) }
+                var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+                LaunchedEffect(Unit) {
+                    entitlementManager.migrateOldStylesIfNeeded()
+                    while(true) {
+                        kotlinx.coroutines.delay(60000)
+                        currentTime = System.currentTimeMillis()
+                    }
+                }
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(styles.size) { index ->
                         val (styleName, painter) = styles[index]
-                        val isUnlocked = autoConfig.unlockedStyles.contains(styleName)
+                        val isUnlocked = entitlementManager.isStyleUnlocked(styleName)
+                        val remainingTime = entitlementManager.getFormattedRemainingTime(styleName)
                         val context = androidx.compose.ui.platform.LocalContext.current
                         val isSelected = autoConfig.floatingLockStyle == styleName
-                        Box(
+                        
+                        Column(
                             modifier = Modifier
-                                .size(58.dp)
-                                .clip(RoundedCornerShape(18.dp))
+                                .width(120.dp)
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(
-                                    if (isSelected) Color(0xFF00E676).copy(alpha = 0.22f) else Color(0xFF0F172A)
+                                    if (isSelected) Color(0xFF00E676).copy(alpha = 0.15f) else Color(0xFF0F172A)
                                 )
                                 .border(
                                     if (isSelected) 2.dp else 1.dp,
                                     if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
-                                    RoundedCornerShape(18.dp)
+                                    RoundedCornerShape(16.dp)
                                 )
                                 .clickable {
                                     if (isUnlocked) {
@@ -712,48 +723,61 @@ fun ZenithApp(
                                             { showAdLoading = true },
                                             {
                                                 showAdLoading = false
+                                                entitlementManager.grantUnlock(styleName)
                                                 autoConfig = automationSettings.getConfig()
+                                                currentTime = System.currentTimeMillis()
                                             },
                                             { errorMsg ->
                                                 showAdLoading = false
-                                                android.widget.Toast.makeText(
-                                                    context,
-                                                    errorMsg,
-                                                    android.widget.Toast.LENGTH_LONG
-                                                ).show()
+                                                android.widget.Toast.makeText(context, errorMsg, android.widget.Toast.LENGTH_LONG).show()
                                             }
                                         )
                                     }
-                                },
-                            contentAlignment = Alignment.Center
+                                }
+                                .padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
                                 painter = painter,
                                 contentDescription = null,
                                 tint = if (isSelected) Color(0xFF00E676) else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
-                                modifier = Modifier.size(26.dp)
+                                modifier = Modifier.size(32.dp).padding(bottom = 8.dp)
                             )
-                            if (!isUnlocked) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(4.dp)
-                                        .size(16.dp)
-                                        .background(Color(0xFF0F172A), CircleShape)
-                                        .border(1.dp, Color(0xFFFFB300), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "Locked",
-                                        tint = Color(0xFFFFB300),
-                                        modifier = Modifier.size(10.dp)
-                                    )
+                            
+                            val displayName = styleName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }.replace("_", " ")
+                            Text(
+                                text = displayName,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            if (isSelected) {
+                                Text("ACTIVE", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            } else if (isUnlocked) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Unlocked", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                 }
+                                if (remainingTime != null) {
+                                    Text(remainingTime, color = Color.Gray, fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
+                                }
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Locked", color = Color(0xFFFFB300), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                }
+                                Text("Watch Video", color = Color(0xFF00E5FF), fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
                             }
                         }
                     }
                 }
+
 
                 Text(
                     text = stringResource(R.string.floating_lock_size),
@@ -785,41 +809,6 @@ fun ZenithApp(
                     modifier = Modifier.padding(top = 14.dp, bottom = 10.dp)
                 )
 
-                androidx.compose.foundation.lazy.LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(7) { index ->
-                        val taps = index + 1
-                        val isSelected = autoConfig.tapsToWake == taps
-                        Box(
-                            modifier = Modifier
-                                .width(76.dp)
-                                .height(46.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (isSelected) Color(0xFF00E676) else Color(0xFF0F172A)
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable {
-                                    autoConfig = autoConfig.copy(tapsToWake = taps)
-                                    automationSettings.updateConfig(autoConfig)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$taps ${if (taps == 1) "Tap" else "Taps"}",
-                                color = if (isSelected) Color(0xFF020612) else Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
