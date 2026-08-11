@@ -59,7 +59,6 @@ class BlackScreenService : Service() {
     private var aodBatteryTextView: TextView? = null
     private var aodStatusTextView: TextView? = null
     private var aodDateTextView: TextView? = null
-    private var aodQuoteTextView: TextView? = null
     private var aodContainer: View? = null
     private var unlockButton: View? = null
     private var tapCount = 0
@@ -91,19 +90,6 @@ class BlackScreenService : Service() {
     }
     
     private var blackoutStartTime = 0L
-    private var currentQuote = ""
-    
-    private val quotes = listOf(
-        "Focus on the journey, not the destination.",
-        "Your focus determines your reality.",
-        "Stay focused, stay humble.",
-        "Where focus goes, energy flows.",
-        "Deep work is the superpower of the 21st century.",
-        "Disconnect to reconnect.",
-        "One task at a time.",
-        "Be present.",
-        "Silence is golden."
-    )
 
     private val channelId = "BlackScreenChannel"
     private val notificationId = 1
@@ -321,26 +307,34 @@ class BlackScreenService : Service() {
         
         val config = smartAutomationManager.settings.getConfig()
         
+        val themeColor = when (config.aodThemeColor) {
+            "green" -> android.graphics.Color.parseColor("#69F0AE")
+            "blue" -> android.graphics.Color.parseColor("#82B1FF")
+            "yellow" -> android.graphics.Color.parseColor("#FFD54F")
+            "pink" -> android.graphics.Color.parseColor("#FF80AB")
+            else -> android.graphics.Color.WHITE
+        }
+
         when (config.clockStyle) {
             "huge" -> {
                 aodClockTextView?.textSize = 110f
-                aodClockTextView?.setTextColor(android.graphics.Color.parseColor("#82B1FF"))
+                aodClockTextView?.setTextColor(themeColor)
                 aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-thin", android.graphics.Typeface.NORMAL)
             }
             "analog" -> {
                 aodClockTextView?.textSize = 72f
-                aodClockTextView?.setTextColor(android.graphics.Color.parseColor("#FFD54F"))
+                aodClockTextView?.setTextColor(themeColor)
                 aodClockTextView?.typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.ITALIC)
             }
             "dino" -> {
                 aodClockTextView?.textSize = 60f
-                aodClockTextView?.setTextColor(android.graphics.Color.parseColor("#69F0AE"))
+                aodClockTextView?.setTextColor(themeColor)
                 aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
             }
             else -> {
-                aodClockTextView?.textSize = 64f
-                aodClockTextView?.setTextColor(android.graphics.Color.WHITE)
-                aodClockTextView?.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                aodClockTextView?.textSize = 100f
+                aodClockTextView?.setTextColor(themeColor)
+                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
             }
         }
         
@@ -353,7 +347,10 @@ class BlackScreenService : Service() {
         }
         
         aodDateTextView?.text = dateSdf.format(now)
+        aodDateTextView?.setTextColor(themeColor)
+        
         aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
+        aodBatteryTextView?.setTextColor(themeColor)
         
         if (config.oledBurnInProtection) {
             val random = java.util.Random()
@@ -365,9 +362,6 @@ class BlackScreenService : Service() {
             aodContainer?.translationX = 0f
             aodContainer?.translationY = 0f
         }
-        
-        if (currentQuote.isEmpty()) currentQuote = quotes.random()
-        aodQuoteTextView?.text = currentQuote
     }
 
     private fun getCurrentFormattedTime(): String {
@@ -400,8 +394,8 @@ class BlackScreenService : Service() {
             aodDateTextView = TextView(this@BlackScreenService).apply {
                 setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
-                textSize = 16f
-                setPadding(0, 16, 0, 32)
+                textSize = 18f
+                setPadding(0, 0, 0, 16)
             }
             topContainer.addView(aodDateTextView)
 
@@ -412,15 +406,6 @@ class BlackScreenService : Service() {
             }
             topContainer.addView(aodBatteryTextView)
 
-            aodQuoteTextView = TextView(this@BlackScreenService).apply {
-                setTextColor(Color.parseColor("#AAAAAA"))
-                gravity = Gravity.CENTER
-                textSize = 14f
-                setTypeface(null, android.graphics.Typeface.ITALIC)
-                setPadding(40, 60, 40, 0)
-            }
-            topContainer.addView(aodQuoteTextView)
-
             addView(topContainer, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, 
                 FrameLayout.LayoutParams.WRAP_CONTENT
@@ -428,33 +413,91 @@ class BlackScreenService : Service() {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             })
             
-            // Bottom UNLOCK button
             unlockButton = TextView(this@BlackScreenService).apply {
-                text = "UNLOCK"
-                setTextColor(Color.BLACK)
-                val bg = GradientDrawable()
-                bg.setColor(Color.WHITE)
-                bg.cornerRadius = 60f
-                background = bg
-                gravity = Gravity.CENTER
-                textSize = 16f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-                letterSpacing = 0.1f
-                setPadding(80, 40, 80, 40)
-                visibility = View.GONE
+                val config = smartAutomationManager.settings.getConfig()
+                val style = config.unlockScreenStyle
                 
-                setOnClickListener {
-                    handler.removeCallbacks(resetToBlackRunnable)
-                    val config = smartAutomationManager.settings.getConfig()
-                    if (config.isBiometricEnabled) {
-                        val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        startActivity(intent)
-                    } else {
-                        smartAutomationManager.handleManualDismiss()
-                        showFloatingBubbleInternal()
+                when (style) {
+                    "swipe" -> {
+                        text = "SWIPE UP TO UNLOCK"
+                        setTextColor(Color.WHITE)
+                        background = null
+                        setPadding(0, 40, 0, 40)
+                        gravity = Gravity.CENTER
+                        
+                        var startY = 0f
+                        setOnTouchListener { v, event ->
+                            when (event.action) {
+                                MotionEvent.ACTION_DOWN -> {
+                                    startY = event.y
+                                    true
+                                }
+                                MotionEvent.ACTION_UP -> {
+                                    val endY = event.y
+                                    if (startY - endY > 100) { // Swiped up
+                                        handler.removeCallbacks(resetToBlackRunnable)
+                                        if (config.isBiometricEnabled) {
+                                            val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                            startActivity(intent)
+                                        } else {
+                                            smartAutomationManager.handleManualDismiss()
+                                            showFloatingBubbleInternal()
+                                        }
+                                    }
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                    }
+                    "icon" -> {
+                        text = "🔓"
+                        setTextColor(Color.WHITE)
+                        textSize = 40f
+                        background = null
+                        setPadding(40, 40, 40, 40)
+                        gravity = Gravity.CENTER
+                        
+                        setOnClickListener {
+                            handler.removeCallbacks(resetToBlackRunnable)
+                            if (config.isBiometricEnabled) {
+                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                startActivity(intent)
+                            } else {
+                                smartAutomationManager.handleManualDismiss()
+                                showFloatingBubbleInternal()
+                            }
+                        }
+                    }
+                    else -> { // "button"
+                        text = "UNLOCK"
+                        setTextColor(Color.BLACK)
+                        val bg = GradientDrawable()
+                        bg.setColor(Color.WHITE)
+                        bg.cornerRadius = 60f
+                        background = bg
+                        gravity = Gravity.CENTER
+                        textSize = 16f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        letterSpacing = 0.1f
+                        setPadding(80, 40, 80, 40)
+                        
+                        setOnClickListener {
+                            handler.removeCallbacks(resetToBlackRunnable)
+                            if (config.isBiometricEnabled) {
+                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                startActivity(intent)
+                            } else {
+                                smartAutomationManager.handleManualDismiss()
+                                showFloatingBubbleInternal()
+                            }
+                        }
                     }
                 }
+                visibility = View.GONE
             }
             
             addView(unlockButton, FrameLayout.LayoutParams(
@@ -583,7 +626,6 @@ class BlackScreenService : Service() {
 
                 // Always start pure black
                 isUnlockScreenVisible = false
-                currentQuote = quotes.random()
                 tapCount = 0
                 if (config.isAodEnabled) {
                     aodContainer?.visibility = View.VISIBLE

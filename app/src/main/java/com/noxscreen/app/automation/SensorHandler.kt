@@ -19,7 +19,6 @@ class SensorHandler(context: Context) : SensorEventListener {
     var onProximityChanged: ((isNear: Boolean) -> Unit)? = null
     var onStationaryDetected: (() -> Unit)? = null
     var onMotionDetected: (() -> Unit)? = null
-    var onFaceDownDetected: (() -> Unit)? = null
     var onShakeDetected: (() -> Unit)? = null
 
     private var isProximityActive = false
@@ -35,10 +34,7 @@ class SensorHandler(context: Context) : SensorEventListener {
     private val movementThreshold = 0.8f
     private val shakeThreshold = 12.0f
 
-    private var enableFaceDown = false
     private var enableShake = false
-    private var isFaceDownTriggered = false
-    private var faceDownStartTime = 0L
 
     private var proximityRunnable: Runnable? = null
     private var isProximityTriggered = false
@@ -47,11 +43,15 @@ class SensorHandler(context: Context) : SensorEventListener {
     private var isSensorProximityNear = false
     private var isDark = false
 
-    fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableFaceDown: Boolean = false, enableShake: Boolean = false) {
+    private var accelX = 0f
+    private var accelY = 0f
+    private var accelZ = 9.8f
+
+    fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableShake: Boolean = false) {
+
         stop()
         this.stationaryDurationMs = stationarySec * 1000L
         this.lastMovementTime = System.currentTimeMillis()
-        this.enableFaceDown = enableFaceDown
         this.enableShake = enableShake
 
         if (sensorManager == null) return
@@ -73,7 +73,7 @@ class SensorHandler(context: Context) : SensorEventListener {
             }
         }
 
-        if ((enableMotion || enableFaceDown || enableShake) && accelerometer != null) {
+        if ((enableProximity || enableMotion || enableShake) && accelerometer != null) {
             isMotionActive = sensorManager.registerListener(
                 this,
                 accelerometer,
@@ -113,19 +113,21 @@ class SensorHandler(context: Context) : SensorEventListener {
     }
 
     private fun checkPocketMode() {
-        // Pocket mode is triggered if proximity is near OR (it's completely dark AND we assume it's in a pocket)
-        // Soft fabrics might not trigger proximity correctly, but they will block light.
-        // We only use light sensor as a fallback if proximity is not near, but it has to be VERY dark (0 lux)
-        val isNear = isSensorProximityNear || isDark
+        // High Precision Pocket Mode Algorithm for Android 8+:
+        // 1. Proximity is NEAR
+        // 2. Not lying flat face-up under normal light (prevents accidental triggers when waving hand over desk)
+        // 3. Or Light sensor detects dark environment (< 5 lux) combined with proximity near
+        val isFlatFaceUp = accelZ > 7.5f && abs(accelX) < 3.5f && abs(accelY) < 3.5f
+        val inPocket = isSensorProximityNear && (isDark || !isFlatFaceUp)
 
-        if (isNear) {
+        if (inPocket) {
             if (!isProximityTriggered) {
                 proximityRunnable?.let { mainHandler.removeCallbacks(it) }
                 proximityRunnable = Runnable {
                     isProximityTriggered = true
                     onProximityChanged?.invoke(true)
                 }
-                mainHandler.postDelayed(proximityRunnable!!, 500L) // Delay to prevent false positives
+                mainHandler.postDelayed(proximityRunnable!!, 350L) // 350ms debounce for responsive pocket detection
             }
         } else {
             proximityRunnable?.let { mainHandler.removeCallbacks(it) }
@@ -142,21 +144,28 @@ class SensorHandler(context: Context) : SensorEventListener {
             Sensor.TYPE_PROXIMITY -> {
                 val distance = event.values[0]
                 val maxRange = event.sensor.maximumRange
-                // Robust proximity check: some sensors return maxRange for far, others return 5.0 for far.
-                isSensorProximityNear = distance < maxRange && distance < 5.0f
+                // Robust proximity check for all Android hardware (binary vs continuous proximity sensors)
+                isSensorProximityNear = distance < 0.5f || (distance < maxRange && distance < 4.0f)
                 checkPocketMode()
             }
             Sensor.TYPE_LIGHT -> {
                 val lux = event.values[0]
-                // Very dark means in pocket or face down on a surface. 
-                // We use < 2.0 lux as a threshold for "in pocket" or covered by fabric.
-                isDark = lux < 2.0f
+                // Pocket or covered environment threshold
+                isDark = lux < 5.0f
                 checkPocketMode()
             }
             Sensor.TYPE_ACCELEROMETER -> {
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
+                
+                accelX = x
+                accelY = y
+                accelZ = z
+                
+                // Only trigger checkPocketMode if pocket mode relies on it
+                checkPocketMode()
+                
                 val magnitude = sqrt((x * x + y * y + z * z).toDouble()).toFloat()
                 val delta = abs(magnitude - lastAccelMagnitude)
                 lastAccelMagnitude = magnitude
@@ -170,28 +179,6 @@ class SensorHandler(context: Context) : SensorEventListener {
                     onShakeDetected?.invoke()
                 }
 
-                if (enableFaceDown) {
-                    // Face down: screen pointing to the ground (z is negative gravity)
-                    // Added a wider margin for x and y to make it trigger more reliably
-                    // when placed on slightly uneven surfaces or just held somewhat flat.
-                    val isFaceDownNow = z < -6.0f && abs(x) < 5.0f && abs(y) < 5.0f
-                    if (isFaceDownNow) {
-                        if (!isFaceDownTriggered) {
-                            if (faceDownStartTime == 0L) {
-                                faceDownStartTime = System.currentTimeMillis()
-                            } else if (System.currentTimeMillis() - faceDownStartTime > 300L) {
-                                onFaceDownDetected?.invoke()
-                                isFaceDownTriggered = true
-                            }
-                        }
-                    } else {
-                        // Allow small noise without immediately resetting
-                        if (z > -2.0f || abs(x) > 7.0f || abs(y) > 7.0f) {
-                            faceDownStartTime = 0L
-                            isFaceDownTriggered = false
-                        }
-                    }
-                }
             }
         }
     }

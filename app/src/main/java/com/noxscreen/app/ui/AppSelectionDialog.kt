@@ -1,8 +1,6 @@
 package com.noxscreen.app.ui
 
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,9 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,7 +36,7 @@ import kotlinx.coroutines.withContext
 data class AppItem(
     val packageName: String,
     val appName: String,
-    val icon: Drawable?
+    val iconBitmap: ImageBitmap?
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +48,7 @@ fun AppSelectionDialog(
 ) {
     val context = LocalContext.current
     var installedApps by remember { mutableStateOf<List<AppItem>>(emptyList()) }
-    var selectedApps by remember { mutableStateOf(initialSelectedApps.toMutableSet()) }
+    val selectedApps = remember { mutableStateListOf<String>().apply { addAll(initialSelectedApps) } }
     var isLoading by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -59,16 +56,24 @@ fun AppSelectionDialog(
         withContext(Dispatchers.IO) {
             val pm = context.packageManager
             val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            val apps = packages.filter {
-                pm.getLaunchIntentForPackage(it.packageName) != null && it.packageName != context.packageName
-            }.map {
-                AppItem(
-                    packageName = it.packageName,
-                    appName = pm.getApplicationLabel(it).toString(),
-                    icon = pm.getApplicationIcon(it)
-                )
-            }.sortedBy { it.appName.lowercase() }
-            
+            val apps = packages
+                .filter { pm.getLaunchIntentForPackage(it.packageName) != null && it.packageName != context.packageName }
+                .map { appInfo ->
+                    val appName = pm.getApplicationLabel(appInfo).toString()
+                    val iconBitmap = try {
+                        val drawable = pm.getApplicationIcon(appInfo)
+                        drawable.toBitmap(width = 96, height = 96).asImageBitmap()
+                    } catch (e: Exception) {
+                        null
+                    }
+                    AppItem(
+                        packageName = appInfo.packageName,
+                        appName = appName,
+                        iconBitmap = iconBitmap
+                    )
+                }
+                .sortedBy { it.appName.lowercase() }
+
             withContext(Dispatchers.Main) {
                 installedApps = apps
                 isLoading = false
@@ -76,7 +81,13 @@ fun AppSelectionDialog(
         }
     }
 
-    val filteredApps = installedApps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+    val filteredApps = remember(searchQuery, installedApps) {
+        if (searchQuery.isBlank()) {
+            installedApps
+        } else {
+            installedApps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -84,7 +95,7 @@ fun AppSelectionDialog(
     ) {
         Surface(
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color = Color(0xFF0F172A), // Dark blue-gray like screenshot
+            color = Color(0xFF0F172A),
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.95f)
@@ -102,66 +113,41 @@ fun AppSelectionDialog(
                         .background(Color.Gray.copy(alpha = 0.5f), CircleShape)
                         .align(Alignment.CenterHorizontally)
                 )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
+
+                Spacer(modifier = Modifier.height(20.dp))
+
                 Text(
                     text = "Select Apps to Block",
                     color = Color.White,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                // Search & Filter Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        placeholder = { Text("Search apps...", color = Color.Gray, fontSize = 14.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFF1E293B),
-                            unfocusedContainerColor = Color(0xFF1E293B),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            cursorColor = ZenithAccent
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
-                    
-                    Spacer(modifier = Modifier.width(12.dp))
-                    
-                    // Filter button
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .background(Color(0xFF1E293B), RoundedCornerShape(12.dp))
-                            .clickable { /* Filter logic */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(Icons.Default.Tune, contentDescription = "Filter", tint = ZenithAccent, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Filter", color = ZenithAccent, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
+                // Search Row
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    placeholder = { Text("Search apps...", color = Color.Gray, fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFF1E293B),
+                        unfocusedContainerColor = Color(0xFF1E293B),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        cursorColor = ZenithAccent
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Selection Info Box
                 Box(
                     modifier = Modifier
@@ -181,9 +167,9 @@ fun AppSelectionDialog(
                         ) {
                             Icon(Icons.Default.Security, contentDescription = "Security", tint = ZenithAccent)
                         }
-                        
+
                         Spacer(modifier = Modifier.width(12.dp))
-                        
+
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "${selectedApps.size} apps selected",
@@ -192,12 +178,12 @@ fun AppSelectionDialog(
                                 fontSize = 15.sp
                             )
                             Text(
-                                text = "These apps will be blocked in Focus Mode",
+                                text = "These apps will be blocked during scheduled time",
                                 color = Color.Gray,
                                 fontSize = 12.sp
                             )
                         }
-                        
+
                         Text(
                             text = "Clear All",
                             color = ZenithAccent,
@@ -207,16 +193,16 @@ fun AppSelectionDialog(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 if (isLoading) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = ZenithAccent)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(filteredApps) { app ->
+                        items(filteredApps, key = { it.packageName }) { app ->
                             val isSelected = selectedApps.contains(app.packageName)
                             Row(
                                 modifier = Modifier
@@ -228,27 +214,32 @@ fun AppSelectionDialog(
                                         } else {
                                             selectedApps.add(app.packageName)
                                         }
-                                        selectedApps = selectedApps.toMutableSet()
                                     }
-                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                app.icon?.let { drawable ->
+                                app.iconBitmap?.let { bitmap ->
                                     Image(
-                                        bitmap = drawable.toBitmap().asImageBitmap(),
+                                        bitmap = bitmap,
                                         contentDescription = app.appName,
-                                        modifier = Modifier.size(40.dp)
+                                        modifier = Modifier.size(38.dp)
                                     )
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
+                                } ?: Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .background(Color(0xFF1E293B), CircleShape)
+                                )
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
                                 Text(
                                     text = app.appName,
                                     color = Color.White,
-                                    fontSize = 16.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium,
                                     modifier = Modifier.weight(1f)
                                 )
-                                
+
                                 // Custom Checkbox
                                 Box(
                                     modifier = Modifier
@@ -277,7 +268,7 @@ fun AppSelectionDialog(
                         }
                     }
                 }
-                
+
                 // Bottom Buttons
                 Row(
                     modifier = Modifier
@@ -298,9 +289,9 @@ fun AppSelectionDialog(
                     ) {
                         Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
-                    
+
                     Button(
-                        onClick = { onAppsSelected(selectedApps) },
+                        onClick = { onAppsSelected(selectedApps.toSet()) },
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),

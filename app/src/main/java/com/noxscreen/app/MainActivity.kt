@@ -549,6 +549,13 @@ fun ZenithApp(
                                     automationSettings.updateConfig(autoConfig)
                                 }
                             )
+                            com.noxscreen.app.ui.AodThemeSelector(
+                                selectedTheme = autoConfig.aodThemeColor,
+                                onThemeSelected = { newTheme ->
+                                    autoConfig = autoConfig.copy(aodThemeColor = newTheme)
+                                    automationSettings.updateConfig(autoConfig)
+                                }
+                            )
                         }
                     }
                 }
@@ -578,7 +585,18 @@ fun ZenithApp(
                         automationSettings.updateConfig(autoConfig)
                     }
                 ) {
-                    SkipUnlockGraphic()
+                    Column {
+                        SkipUnlockGraphic()
+                        if (!autoConfig.isSkipUnlockScreenEnabled) {
+                            com.noxscreen.app.ui.UnlockScreenStyleSelector(
+                                selectedStyle = autoConfig.unlockScreenStyle,
+                                onStyleSelected = { newStyle ->
+                                    autoConfig = autoConfig.copy(unlockScreenStyle = newStyle)
+                                    automationSettings.updateConfig(autoConfig)
+                                }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -605,20 +623,6 @@ fun ZenithApp(
                     }
                 ) {
                     PocketModeWaveGraphic()
-                }
-
-                SmartTriggerCard(
-                    title = stringResource(R.string.flip_to_sleep),
-                    subtitle = "Turn face down to lock",
-                    icon = Icons.Default.ScreenRotation,
-                    iconTint = Color(0xFFAB47BC),
-                    checked = autoConfig.isFlipToSleepEnabled,
-                    onCheckedChange = {
-                        autoConfig = autoConfig.copy(isFlipToSleepEnabled = it)
-                        automationSettings.updateConfig(autoConfig)
-                    }
-                ) {
-                    FlipToSleepGraphic()
                 }
 
                 SmartTriggerCard(
@@ -781,15 +785,16 @@ fun ZenithApp(
                     modifier = Modifier.padding(top = 14.dp, bottom = 10.dp)
                 )
 
-                Row(
+                androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    (1..4).forEach { taps ->
+                    items(7) { index ->
+                        val taps = index + 1
                         val isSelected = autoConfig.tapsToWake == taps
                         Box(
                             modifier = Modifier
-                                .weight(1f)
+                                .width(76.dp)
                                 .height(46.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(
@@ -888,45 +893,12 @@ fun ZenithApp(
                 } else {
                     
                     ZenithSwitchRow(
-                        title = "Enable App Limits",
-                        subtitle = "Lock distraction apps when limit is reached",
-                        checked = autoConfig.isUsageLimitsEnabled
-                    ) {
-                        autoConfig = autoConfig.copy(isUsageLimitsEnabled = it)
-                        automationSettings.updateConfig(autoConfig)
-                    }
-
-                    ZenithSwitchRow(
                         title = "Enable Schedule Limits",
                         subtitle = "Lock distraction apps during scheduled times",
                         checked = autoConfig.isScheduleEnabled
                     ) {
                         autoConfig = autoConfig.copy(isScheduleEnabled = it)
                         automationSettings.updateConfig(autoConfig)
-                    }
-
-                    if (autoConfig.isUsageLimitsEnabled) {
-                        Text(
-                            text = "Limit: ${autoConfig.usageLimitDurationMinutes} minutes",
-                            color = ZenithSecondary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                        )
-                        Slider(
-                            value = autoConfig.usageLimitDurationMinutes.toFloat(),
-                            onValueChange = {
-                                autoConfig = autoConfig.copy(usageLimitDurationMinutes = it.toInt())
-                                automationSettings.updateConfig(autoConfig)
-                            },
-                            valueRange = 1f..120f,
-                            steps = 118,
-                            colors = SliderDefaults.colors(
-                                thumbColor = ZenithAccent,
-                                activeTrackColor = ZenithAccent,
-                                inactiveTrackColor = ZenithCardBorder
-                            )
-                        )
                     }
 
                     if (autoConfig.isScheduleEnabled) {
@@ -984,7 +956,7 @@ fun ZenithApp(
                         }
                     }
 
-                    if (autoConfig.isUsageLimitsEnabled || autoConfig.isScheduleEnabled) {
+                    if (autoConfig.isScheduleEnabled) {
                         var showAppSelection by remember { mutableStateOf(false) }
 
                         if (showAppSelection) {
@@ -2044,74 +2016,6 @@ fun PocketModeWaveGraphic() {
     }
 }
 
-@Composable
-fun FlipToSleepGraphic() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(38.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .width(42.dp)
-                .height(26.dp)
-                .background(Color(0xFF8B5CF6).copy(alpha = 0.22f), RoundedCornerShape(7.dp))
-                .border(1.5.dp, Color(0xFFAB47BC), RoundedCornerShape(7.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(14.dp)
-                    .height(2.dp)
-                    .background(Color(0xFFAB47BC), CircleShape)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(18.dp))
-
-        androidx.compose.foundation.Canvas(modifier = Modifier.size(32.dp, 20.dp)) {
-            val path = Path().apply {
-                moveTo(2.dp.toPx(), 16.dp.toPx())
-                cubicTo(8.dp.toPx(), 2.dp.toPx(), 24.dp.toPx(), 2.dp.toPx(), 28.dp.toPx(), 14.dp.toPx())
-            }
-            drawPath(
-                path = path,
-                color = Color(0xFFAB47BC),
-                style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
-            )
-            val tipPath = Path().apply {
-                moveTo(22.dp.toPx(), 10.dp.toPx())
-                lineTo(29.dp.toPx(), 15.dp.toPx())
-                lineTo(24.dp.toPx(), 18.dp.toPx())
-            }
-            drawPath(
-                path = tipPath,
-                color = Color(0xFFAB47BC),
-                style = Stroke(width = 2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(18.dp))
-
-        Box(
-            modifier = Modifier
-                .width(42.dp)
-                .height(26.dp)
-                .background(Color(0xFF3B0764).copy(alpha = 0.35f), RoundedCornerShape(7.dp))
-                .border(1.5.dp, Color(0xFF6B21A8).copy(alpha = 0.7f), RoundedCornerShape(7.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(32.dp)
-                    .height(18.dp)
-                    .background(Color(0xFF0F0728), RoundedCornerShape(4.dp))
-            )
-        }
-    }
-}
 
 @Composable
 fun ShakeToWakeGraphic() {

@@ -8,7 +8,7 @@ data class AutomationConfig(
     val timerDurationSeconds: Int = 10,
     val isPocketModeEnabled: Boolean = false,
     val isMotionDetectionEnabled: Boolean = false,
-    val isFlipToSleepEnabled: Boolean = false,
+    
     val isShakeToWakeEnabled: Boolean = false,
     val stationaryDurationSeconds: Int = 10,
     val isAodEnabled: Boolean = false,
@@ -17,7 +17,7 @@ data class AutomationConfig(
     val floatingLockSize: Float = 0.5f,
     val showBatteryPercentage: Boolean = true,
     val use24HourTime: Boolean = false,
-    val tapsToWake: Int = 1,
+    val tapsToWake: Int = 4,
     val hideFloatingButton: Boolean = false,
     val reduceBrightness: Boolean = false,
     val oledBurnInProtection: Boolean = false,
@@ -31,7 +31,9 @@ data class AutomationConfig(
     val scheduleStartTimeHour: Int = 22,
     val scheduleStartTimeMinute: Int = 0,
     val scheduleEndTimeHour: Int = 7,
-    val scheduleEndTimeMinute: Int = 0
+    val scheduleEndTimeMinute: Int = 0,
+    val unlockScreenStyle: String = "button",
+    val aodThemeColor: String = "white"
 )
 
 class AutomationSettings(private val context: Context) {
@@ -43,7 +45,7 @@ class AutomationSettings(private val context: Context) {
             timerDurationSeconds = prefs.getInt("timer_duration_sec", 10),
             isPocketModeEnabled = prefs.getBoolean("is_pocket_mode_enabled", false),
             isMotionDetectionEnabled = prefs.getBoolean("is_motion_detection_enabled", false),
-            isFlipToSleepEnabled = prefs.getBoolean("is_flip_to_sleep_enabled", false),
+            
             isShakeToWakeEnabled = prefs.getBoolean("is_shake_to_wake_enabled", false),
             stationaryDurationSeconds = prefs.getInt("stationary_duration_sec", 10),
             isAodEnabled = prefs.getBoolean("is_aod_enabled", false),
@@ -52,7 +54,7 @@ class AutomationSettings(private val context: Context) {
             floatingLockSize = prefs.getFloat("floating_lock_size", 0.5f),
             showBatteryPercentage = prefs.getBoolean("show_battery_percentage", true),
             use24HourTime = prefs.getBoolean("use_24_hour_time", false),
-            tapsToWake = prefs.getInt("taps_to_wake", 1),
+            tapsToWake = prefs.getInt("taps_to_wake", 4),
             hideFloatingButton = prefs.getBoolean("hide_floating_button", false),
             reduceBrightness = prefs.getBoolean("reduce_brightness", false),
             oledBurnInProtection = prefs.getBoolean("oled_burn_in_protection", false),
@@ -66,7 +68,9 @@ class AutomationSettings(private val context: Context) {
             scheduleStartTimeHour = prefs.getInt("schedule_start_hour", 22),
             scheduleStartTimeMinute = prefs.getInt("schedule_start_minute", 0),
             scheduleEndTimeHour = prefs.getInt("schedule_end_hour", 7),
-            scheduleEndTimeMinute = prefs.getInt("schedule_end_minute", 0)
+            scheduleEndTimeMinute = prefs.getInt("schedule_end_minute", 0),
+            unlockScreenStyle = prefs.getString("unlock_screen_style", "button") ?: "button",
+            aodThemeColor = prefs.getString("aod_theme_color", "white") ?: "white"
         )
     }
 
@@ -76,7 +80,7 @@ class AutomationSettings(private val context: Context) {
             .putInt("timer_duration_sec", config.timerDurationSeconds)
             .putBoolean("is_pocket_mode_enabled", config.isPocketModeEnabled)
             .putBoolean("is_motion_detection_enabled", config.isMotionDetectionEnabled)
-            .putBoolean("is_flip_to_sleep_enabled", config.isFlipToSleepEnabled)
+            
             .putBoolean("is_shake_to_wake_enabled", config.isShakeToWakeEnabled)
             .putInt("stationary_duration_sec", config.stationaryDurationSeconds)
             .putBoolean("is_aod_enabled", config.isAodEnabled)
@@ -100,38 +104,12 @@ class AutomationSettings(private val context: Context) {
             .putInt("schedule_start_minute", config.scheduleStartTimeMinute)
             .putInt("schedule_end_hour", config.scheduleEndTimeHour)
             .putInt("schedule_end_minute", config.scheduleEndTimeMinute)
+            .putString("unlock_screen_style", config.unlockScreenStyle)
+            .putString("aod_theme_color", config.aodThemeColor)
             .apply()
         
         val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")
         intent.setPackage(context.packageName)
         context.sendBroadcast(intent)
-    }
-
-    fun setTimerEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_timer_enabled", enabled).apply()
-    }
-
-    fun setTimerDuration(seconds: Int) {
-        prefs.edit().putInt("timer_duration_sec", seconds).apply()
-    }
-
-    fun setPocketModeEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_pocket_mode_enabled", enabled).apply()
-    }
-
-    fun setMotionDetectionEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_motion_detection_enabled", enabled).apply()
-    }
-
-    fun setStationaryDuration(seconds: Int) {
-        prefs.edit().putInt("stationary_duration_sec", seconds).apply()
-    }
-
-    fun setDarkTintEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_dark_tint_enabled", enabled).apply()
-    }
-
-    fun setAodEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("is_aod_enabled", enabled).apply()
     }
 }

@@ -19,17 +19,6 @@ class SmartAutomationManager(
     }
 
     private fun setupSensorCallbacks() {
-        sensorHandler.onFaceDownDetected = {
-            val config = settings.getConfig()
-            if (config.isFlipToSleepEnabled) {
-                if (timerHandler.isTimerRunning) {
-                    timerHandler.cancelTimer()
-                }
-                triggeredBySensor = true
-                onTriggerOverlay(true)
-            }
-        }
-
         sensorHandler.onShakeDetected = {
             val config = settings.getConfig()
             if (config.isShakeToWakeEnabled) {
@@ -103,12 +92,11 @@ class SmartAutomationManager(
 
     fun startSensors() {
         val config = settings.getConfig()
-        if (config.isPocketModeEnabled || config.isMotionDetectionEnabled || config.isFlipToSleepEnabled || config.isShakeToWakeEnabled) {
+        if (config.isPocketModeEnabled || config.isMotionDetectionEnabled || config.isShakeToWakeEnabled) {
             sensorHandler.start(
                 enableProximity = config.isPocketModeEnabled,
                 enableMotion = config.isMotionDetectionEnabled,
                 stationarySec = config.stationaryDurationSeconds,
-                enableFaceDown = config.isFlipToSleepEnabled,
                 enableShake = config.isShakeToWakeEnabled
             )
         }
