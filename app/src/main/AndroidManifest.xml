@@ -46,7 +46,7 @@
         <activity
             android:name=".BiometricAuthActivity"
             android:exported="false"
-            android:theme="@style/Theme.MyApplication" />
+            android:theme="@style/Theme.Transparent" />
             
 
             <service

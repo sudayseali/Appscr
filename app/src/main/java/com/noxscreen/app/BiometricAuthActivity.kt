@@ -15,9 +15,12 @@ import androidx.core.content.ContextCompat
 import java.util.concurrent.Executor
 
 class BiometricAuthActivity : FragmentActivity() {
+
     private lateinit var executor: Executor
     private lateinit var biometricPrompt: BiometricPrompt
     private lateinit var promptInfo: BiometricPrompt.PromptInfo
+    
+    private var isSuccess = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,15 +43,14 @@ class BiometricAuthActivity : FragmentActivity() {
                 override fun onAuthenticationError(errorCode: Int,
                                                    errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    Toast.makeText(applicationContext,
-                        "Authentication error: $errString", Toast.LENGTH_SHORT)
-                        .show()
                     finish()
                 }
 
                 override fun onAuthenticationSucceeded(
                     result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
+                    
+                    isSuccess = true
                     
                     val intent = Intent(this@BiometricAuthActivity, BlackScreenService::class.java).apply {
                         action = "BIOMETRIC_SUCCESS"
@@ -57,6 +59,7 @@ class BiometricAuthActivity : FragmentActivity() {
                     
                     val broadcastIntent = Intent("com.noxscreen.app.BIOMETRIC_SUCCESS")
                     sendBroadcast(broadcastIntent)
+
                     finish()
                 }
 
@@ -75,5 +78,15 @@ class BiometricAuthActivity : FragmentActivity() {
             .build()
 
         biometricPrompt.authenticate(promptInfo)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (!isSuccess) {
+            val intent = Intent(this, BlackScreenService::class.java).apply {
+                action = "BIOMETRIC_FAILED"
+            }
+            startService(intent)
+        }
     }
 }
