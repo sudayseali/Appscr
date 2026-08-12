@@ -847,6 +847,49 @@ fun ZenithApp(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 14.dp, bottom = 10.dp)
                 )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${autoConfig.tapsToWake} taps to wake screen",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { 
+                                if (autoConfig.tapsToWake > 1) {
+                                    autoConfig = autoConfig.copy(tapsToWake = autoConfig.tapsToWake - 1)
+                                    automationSettings.updateConfig(autoConfig)
+                                }
+                            },
+                            modifier = Modifier.size(36.dp).background(Color(0xFF1E293B), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrease taps", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                        Text(
+                            text = autoConfig.tapsToWake.toString(),
+                            color = Color(0xFF00E5FF),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        IconButton(
+                            onClick = { 
+                                if (autoConfig.tapsToWake < 10) {
+                                    autoConfig = autoConfig.copy(tapsToWake = autoConfig.tapsToWake + 1)
+                                    automationSettings.updateConfig(autoConfig)
+                                }
+                            },
+                            modifier = Modifier.size(36.dp).background(Color(0xFF1E293B), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Increase taps", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
 
             }
 
