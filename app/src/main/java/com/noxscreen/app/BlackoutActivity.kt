@@ -136,7 +136,11 @@ fun BlackoutScreen(onUnlock: () -> Unit) {
                 if (!isUnlockScreenVisible) {
                     tapCount++
                     if (tapCount >= autoConfig.tapsToWake) {
-                        isUnlockScreenVisible = true
+                        if (autoConfig.isSkipUnlockScreenEnabled) {
+                            onUnlock()
+                        } else {
+                            isUnlockScreenVisible = true
+                        }
                         tapCount = 0
                     }
                 }

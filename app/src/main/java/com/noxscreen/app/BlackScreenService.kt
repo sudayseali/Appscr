@@ -130,7 +130,7 @@ class BlackScreenService : Service() {
                 showBlackoutInternal()
             },
             onRemoveOverlay = {
-                showFloatingBubbleInternal()
+                handleUnlockRequest()
             }
         )
 
@@ -562,7 +562,7 @@ class BlackScreenService : Service() {
                     if (tapCount >= config.tapsToWake) {
                         if (config.isSkipUnlockScreenEnabled) {
                             smartAutomationManager.handleManualDismiss()
-                            showFloatingBubbleInternal()
+                            handleUnlockRequest()
                         } else {
                             isUnlockScreenVisible = true
                             tapCount = 0
