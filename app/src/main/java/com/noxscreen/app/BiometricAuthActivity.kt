@@ -1,6 +1,5 @@
 package com.noxscreen.app
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
+import com.noxscreen.app.security.AuthenticationManager
+import com.noxscreen.app.security.AuthState
 import java.util.concurrent.Executor
 
 class BiometricAuthActivity : FragmentActivity() {
@@ -20,10 +21,17 @@ class BiometricAuthActivity : FragmentActivity() {
     private lateinit var biometricPrompt: BiometricPrompt
     private lateinit var promptInfo: BiometricPrompt.PromptInfo
     
-    private var isSuccess = false
+    private var isAuthCompleted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // If we are not in AUTHENTICATING state, someone launched this directly illegally. Lock and exit.
+        if (AuthenticationManager.getState() != AuthState.AUTHENTICATING) {
+            AuthenticationManager.lock()
+            finish()
+            return
+        }
         
         window.addFlags(
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
@@ -40,34 +48,24 @@ class BiometricAuthActivity : FragmentActivity() {
         executor = ContextCompat.getMainExecutor(this)
         biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(errorCode: Int,
-                                                   errString: CharSequence) {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
+                    isAuthCompleted = true
+                    AuthenticationManager.markFailure()
                     finish()
                 }
 
-                override fun onAuthenticationSucceeded(
-                    result: BiometricPrompt.AuthenticationResult) {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
-                    
-                    isSuccess = true
-                    
-                    val intent = Intent(this@BiometricAuthActivity, BlackScreenService::class.java).apply {
-                        action = "BIOMETRIC_SUCCESS"
-                    }
-                    startService(intent)
-                    
-                    val broadcastIntent = Intent("com.noxscreen.app.BIOMETRIC_SUCCESS")
-                    sendBroadcast(broadcastIntent)
-
+                    isAuthCompleted = true
+                    AuthenticationManager.markSuccess()
                     finish()
                 }
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-                    Toast.makeText(applicationContext, "Authentication failed",
-                        Toast.LENGTH_SHORT)
-                        .show()
+                    // Just failed an attempt, don't finish yet. 
+                    // Let the user try again or cancel. 
                 }
             })
 
@@ -82,11 +80,19 @@ class BiometricAuthActivity : FragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (!isSuccess) {
-            val intent = Intent(this, BlackScreenService::class.java).apply {
-                action = "BIOMETRIC_FAILED"
-            }
-            startService(intent)
+        // If activity is destroyed without a successful authentication (e.g. back button, rotation, process death)
+        if (!isAuthCompleted) {
+            AuthenticationManager.markFailure()
+        }
+    }
+    
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        super.onBackPressed()
+        if (!isAuthCompleted) {
+            isAuthCompleted = true
+            AuthenticationManager.markFailure()
+            finish()
         }
     }
 }

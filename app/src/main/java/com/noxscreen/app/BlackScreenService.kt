@@ -162,23 +162,45 @@ class BlackScreenService : Service() {
         setupBlackoutView()
     }
 
+
+    private fun stopSelfAndCleanUp() {
+        isRunning = false
+        updateTile(this)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP_SERVICE") {
-            isRunning = false
-            updateTile(this)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
+            val config = smartAutomationManager.settings.getConfig()
+            if (config.isBiometricEnabled) {
+                com.noxscreen.app.security.AuthenticationManager.startAuthentication(
+                    onSuccess = {
+                        stopSelfAndCleanUp()
+                    },
+                    onFailure = {
+                        // User cancelled or failed to authenticate to stop the service, keep running
+                    }
+                )
+                val authIntent = android.content.Intent(this, BiometricAuthActivity::class.java)
+                authIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                startActivity(authIntent)
+                return START_STICKY
             } else {
-                @Suppress("DEPRECATION")
-                stopForeground(true)
+                stopSelfAndCleanUp()
+                return START_NOT_STICKY
             }
-            stopSelf()
-            return START_NOT_STICKY
         }
+
         isRunning = true
         updateTile(this)
         
-        if (intent?.action == "BIOMETRIC_SUCCESS") {
+        if (false) {
             smartAutomationManager.handleManualDismiss()
             showFloatingBubbleInternal()
             return START_STICKY
@@ -187,7 +209,7 @@ class BlackScreenService : Service() {
         if (intent?.action == "START_BLACKOUT") {
             smartAutomationManager.handleUserActivation()
             smartAutomationManager.startSensors()
-        } else if (intent?.action == "BIOMETRIC_FAILED") {
+        } else if (false) {
             blackoutView?.visibility = View.VISIBLE
             isUnlockScreenVisible = false
             aodContainer?.visibility = View.GONE
@@ -381,7 +403,36 @@ class BlackScreenService : Service() {
         return sdf.format(java.util.Date())
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+
+    private fun handleUnlockRequest() {
+        val config = smartAutomationManager.settings.getConfig()
+        handler.removeCallbacks(resetToBlackRunnable)
+        if (config.isBiometricEnabled) {
+            blackoutView?.visibility = android.view.View.GONE
+            com.noxscreen.app.security.AuthenticationManager.startAuthentication(
+                onSuccess = {
+                    smartAutomationManager.handleManualDismiss()
+                    showFloatingBubbleInternal()
+                },
+                onFailure = {
+                    blackoutView?.visibility = android.view.View.VISIBLE
+                    isUnlockScreenVisible = false
+                    aodContainer?.visibility = android.view.View.GONE
+                    unlockButton?.visibility = android.view.View.GONE
+                    handler.removeCallbacks(resetToBlackRunnable)
+                    handler.postDelayed(resetToBlackRunnable, 10000)
+                }
+            )
+            val intent = android.content.Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+        } else {
+            smartAutomationManager.handleManualDismiss()
+            showFloatingBubbleInternal()
+        }
+    }
+
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
     private fun setupBlackoutView() {
         blackoutView = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -447,16 +498,7 @@ class BlackScreenService : Service() {
                                 MotionEvent.ACTION_UP -> {
                                     val endY = event.y
                                     if (startY - endY > 100) { // Swiped up
-                                        handler.removeCallbacks(resetToBlackRunnable)
-                                        if (config.isBiometricEnabled) {
-                                            blackoutView?.visibility = View.GONE
-                                            val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                            startActivity(intent)
-                                        } else {
-                                            smartAutomationManager.handleManualDismiss()
-                                            showFloatingBubbleInternal()
-                                        }
+                                        handleUnlockRequest()
                                     }
                                     true
                                 }
@@ -473,16 +515,7 @@ class BlackScreenService : Service() {
                         gravity = Gravity.CENTER
                         
                         setOnClickListener {
-                            handler.removeCallbacks(resetToBlackRunnable)
-                            if (config.isBiometricEnabled) {
-                                blackoutView?.visibility = View.GONE
-                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                startActivity(intent)
-                            } else {
-                                smartAutomationManager.handleManualDismiss()
-                                showFloatingBubbleInternal()
-                            }
+                            handleUnlockRequest()
                         }
                     }
                     else -> { // "button"
@@ -499,16 +532,7 @@ class BlackScreenService : Service() {
                         setPadding(80, 40, 80, 40)
                         
                         setOnClickListener {
-                            handler.removeCallbacks(resetToBlackRunnable)
-                            if (config.isBiometricEnabled) {
-                                blackoutView?.visibility = View.GONE
-                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                startActivity(intent)
-                            } else {
-                                smartAutomationManager.handleManualDismiss()
-                                showFloatingBubbleInternal()
-                            }
+                            handleUnlockRequest()
                         }
                     }
                 }

@@ -1,10 +1,7 @@
 package com.noxscreen.app
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -35,30 +32,9 @@ import java.util.Date
 import java.util.Locale
 
 class BlackoutActivity : ComponentActivity() {
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.noxscreen.app.BIOMETRIC_SUCCESS") {
-                finish()
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            unregisterReceiver(receiver)
-        } catch (e: Exception) {}
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        val filter = IntentFilter("com.noxscreen.app.BIOMETRIC_SUCCESS")
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(receiver, filter)
-        }
         
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
@@ -71,11 +47,13 @@ class BlackoutActivity : ComponentActivity() {
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
             )
         }
+        
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+        
         // Set brightness to minimum
         val layoutParams = window.attributes
         layoutParams.screenBrightness = 0f
@@ -88,20 +66,17 @@ class BlackoutActivity : ComponentActivity() {
         }
         window.attributes = layoutParams
         
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, window.decorView).let { controller ->
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
-
         setContent {
             MyApplicationTheme(darkTheme = true) {
                 BlackoutScreen(onUnlock = { 
                     val settings = com.noxscreen.app.automation.AutomationSettings(this)
                     val isBiometricEnabled = settings.getConfig().isBiometricEnabled
                     if (isBiometricEnabled) {
+                        com.noxscreen.app.security.AuthenticationManager.startAuthentication(
+                            onSuccess = { finish() },
+                            onFailure = { /* do nothing, stay in BlackoutActivity */ }
+                        )
                         val intent = Intent(this, BiometricAuthActivity::class.java)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                         startActivity(intent)
                     } else {
                         finish() 
@@ -135,7 +110,6 @@ fun BlackoutScreen(onUnlock: () -> Unit) {
             delay(10000)
             isUnlockScreenVisible = false
         } else {
-            // After 5 seconds of black screen, remove KEEP_SCREEN_ON to allow real device sleep
             delay(5000)
             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
@@ -151,7 +125,6 @@ fun BlackoutScreen(onUnlock: () -> Unit) {
             )
         )
     }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -189,13 +162,11 @@ fun UnlockScreenView(onUnlock: () -> Unit) {
             delay(1000)
         }
     }
-
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top section with time, date, and battery
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(top = 100.dp)
@@ -222,7 +193,6 @@ fun UnlockScreenView(onUnlock: () -> Unit) {
             )
         }
         
-        // Bottom unlock section
         Box(
             modifier = Modifier
                 .fillMaxWidth()

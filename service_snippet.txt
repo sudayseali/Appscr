@@ -1,0 +1,91 @@
+                val style = config.unlockScreenStyle
+                
+                when (style) {
+                    "swipe" -> {
+                        text = "SWIPE UP TO UNLOCK"
+                        setTextColor(Color.WHITE)
+                        background = null
+                        setPadding(0, 40, 0, 40)
+                        gravity = Gravity.CENTER
+                        
+                        var startY = 0f
+                        setOnTouchListener { v, event ->
+                            when (event.action) {
+                                MotionEvent.ACTION_DOWN -> {
+                                    startY = event.y
+                                    true
+                                }
+                                MotionEvent.ACTION_UP -> {
+                                    val endY = event.y
+                                    if (startY - endY > 100) { // Swiped up
+                                        handler.removeCallbacks(resetToBlackRunnable)
+                                        if (config.isBiometricEnabled) {
+                                            blackoutView?.visibility = View.GONE
+                                            val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                            startActivity(intent)
+                                        } else {
+                                            smartAutomationManager.handleManualDismiss()
+                                            showFloatingBubbleInternal()
+                                        }
+                                    }
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                    }
+                    "icon" -> {
+                        text = "🔓"
+                        setTextColor(Color.WHITE)
+                        textSize = 40f
+                        background = null
+                        setPadding(40, 40, 40, 40)
+                        gravity = Gravity.CENTER
+                        
+                        setOnClickListener {
+                            handler.removeCallbacks(resetToBlackRunnable)
+                            if (config.isBiometricEnabled) {
+                                blackoutView?.visibility = View.GONE
+                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                startActivity(intent)
+                            } else {
+                                smartAutomationManager.handleManualDismiss()
+                                showFloatingBubbleInternal()
+                            }
+                        }
+                    }
+                    else -> { // "button"
+                        text = "UNLOCK"
+                        setTextColor(Color.BLACK)
+                        val bg = GradientDrawable()
+                        bg.setColor(Color.WHITE)
+                        bg.cornerRadius = 60f
+                        background = bg
+                        gravity = Gravity.CENTER
+                        textSize = 16f
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        letterSpacing = 0.1f
+                        setPadding(80, 40, 80, 40)
+                        
+                        setOnClickListener {
+                            handler.removeCallbacks(resetToBlackRunnable)
+                            if (config.isBiometricEnabled) {
+                                blackoutView?.visibility = View.GONE
+                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                startActivity(intent)
+                            } else {
+                                smartAutomationManager.handleManualDismiss()
+                                showFloatingBubbleInternal()
+                            }
+                        }
+                    }
+                }
+                visibility = View.GONE
+            }
+            
+            addView(unlockButton, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, 
+                FrameLayout.LayoutParams.WRAP_CONTENT

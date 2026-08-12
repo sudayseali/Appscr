@@ -55,6 +55,23 @@ import com.noxscreen.app.automation.AutomationConfig
 class MainActivity : ComponentActivity() {
     private lateinit var adsManager: com.noxscreen.app.ads.UnityAdsManager
 
+
+    override fun onResume() {
+        super.onResume()
+        if (!com.noxscreen.app.security.AuthenticationManager.isAuthenticated(this)) {
+            com.noxscreen.app.security.AuthenticationManager.startAuthentication(
+                onSuccess = { 
+                    // Nothing to do, onResume will just proceed 
+                },
+                onFailure = { 
+                    finish() 
+                }
+            )
+            val intent = android.content.Intent(this, BiometricAuthActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.noxscreen.app.automation.FloatingLockEntitlementManager(this).validateActiveStyle()
@@ -73,12 +90,34 @@ class MainActivity : ComponentActivity() {
         adsManager.initialize()
 
         enableEdgeToEdge()
+
         setContent {
             MyApplicationTheme(darkTheme = true) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF020612)
                 ) {
+                    var isAuthenticated by androidx.compose.runtime.remember { 
+                        androidx.compose.runtime.mutableStateOf(com.noxscreen.app.security.AuthenticationManager.isAuthenticated(this@MainActivity)) 
+                    }
+                    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                isAuthenticated = com.noxscreen.app.security.AuthenticationManager.isAuthenticated(this@MainActivity)
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
+                    if (!isAuthenticated) {
+                        androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+                        return@Surface
+                    }
+
                     var showSplash by remember { mutableStateOf(true) }
                     
                     LaunchedEffect(Unit) {
