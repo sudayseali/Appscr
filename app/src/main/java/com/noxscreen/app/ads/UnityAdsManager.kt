@@ -17,7 +17,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     private val GAME_ID = "5990107"
     private val REWARDED_AD_UNIT_ID = "rewardedVideo"
     private val INTERSTITIAL_AD_UNIT_ID = "interstitialVideo"
-    private val testMode = false
+    private val testMode = true
 
     // State for controlling interstitial frequency
     private var stopCounter = 0
