@@ -46,6 +46,8 @@
         <activity
             android:name=".BiometricAuthActivity"
             android:exported="false"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.Transparent" />
             
 
