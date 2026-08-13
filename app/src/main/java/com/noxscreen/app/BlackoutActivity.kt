@@ -65,9 +65,11 @@ class BlackoutActivity : ComponentActivity() {
         }
         window.attributes = layoutParams
         
+        val showUnlockPageImmediately = intent.getBooleanExtra("showUnlockPageImmediately", false)
+        
         setContent {
             MyApplicationTheme(darkTheme = true) {
-                BlackoutScreen(onUnlock = { 
+                BlackoutScreen(initialShowUnlock = showUnlockPageImmediately, onUnlock = { 
                     val settings = com.noxscreen.app.automation.AutomationSettings(this)
                     val isBiometricEnabled = settings.getConfig().isBiometricEnabled
                     if (isBiometricEnabled) {
@@ -87,13 +89,13 @@ class BlackoutActivity : ComponentActivity() {
 }
 
 @Composable
-fun BlackoutScreen(onUnlock: () -> Unit) {
+fun BlackoutScreen(initialShowUnlock: Boolean = false, onUnlock: () -> Unit) {
     val context = LocalContext.current
     val automationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
     val autoConfig = remember { automationSettings.getConfig() }
     
     var tapCount by remember { mutableStateOf(0) }
-    var isUnlockScreenVisible by remember { mutableStateOf(false) }
+    var isUnlockScreenVisible by remember { mutableStateOf(initialShowUnlock) }
     
     LaunchedEffect(tapCount) {
         if (tapCount > 0 && !isUnlockScreenVisible) {

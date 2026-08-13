@@ -138,7 +138,7 @@ class BlackScreenService : Service() {
             context = this,
             automationSettings = smartAutomationManager.settings,
             onTriggerBlock = {
-                showBlackoutInternal()
+                showBlackoutInternal(showUnlockPageImmediately = true)
             }
         )
         
@@ -408,7 +408,6 @@ class BlackScreenService : Service() {
         val config = smartAutomationManager.settings.getConfig()
         handler.removeCallbacks(resetToBlackRunnable)
         if (config.isBiometricEnabled) {
-            blackoutView?.visibility = android.view.View.GONE
             com.noxscreen.app.security.AuthenticationManager.startAuthentication(
                 onSuccess = {
                     smartAutomationManager.handleManualDismiss()
@@ -648,7 +647,7 @@ class BlackScreenService : Service() {
         }
     }
 
-    private fun showBlackoutInternal() {
+    private fun showBlackoutInternal(showUnlockPageImmediately: Boolean = false) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
             return
         }
@@ -663,19 +662,29 @@ class BlackScreenService : Service() {
                 val config = smartAutomationManager.settings.getConfig()
                 blackoutView?.setBackgroundColor(Color.BLACK)
 
-                // Always start pure black
-                isUnlockScreenVisible = false
-                tapCount = 0
-                if (config.isAodEnabled) {
-                    aodContainer?.visibility = View.VISIBLE
-                    updateAodInfo()
-                    handler.post(timeUpdater)
-                } else {
+                if (showUnlockPageImmediately) {
+                    isUnlockScreenVisible = true
+                    tapCount = 0
                     aodContainer?.visibility = View.GONE
                     handler.removeCallbacks(timeUpdater)
+                    unlockButton?.visibility = View.VISIBLE
+                    
+                    handler.removeCallbacks(resetToBlackRunnable)
+                    handler.postDelayed(resetToBlackRunnable, 10000)
+                } else {
+                    isUnlockScreenVisible = false
+                    tapCount = 0
+                    if (config.isAodEnabled) {
+                        aodContainer?.visibility = View.VISIBLE
+                        updateAodInfo()
+                        handler.post(timeUpdater)
+                    } else {
+                        aodContainer?.visibility = View.GONE
+                        handler.removeCallbacks(timeUpdater)
+                    }
+                    unlockButton?.visibility = View.GONE
+                    handler.removeCallbacks(resetToBlackRunnable)
                 }
-                unlockButton?.visibility = View.GONE
-                handler.removeCallbacks(resetToBlackRunnable)
 
                 val params = WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
@@ -728,6 +737,7 @@ class BlackScreenService : Service() {
             // Fallback to Activity if overlay is denied by AppOps
             try {
                 val intent = Intent(this, BlackoutActivity::class.java)
+                intent.putExtra("showUnlockPageImmediately", showUnlockPageImmediately)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 startActivity(intent)
             } catch (e2: Exception) {
