@@ -309,8 +309,22 @@ class BlackScreenService : Service() {
                     if (abs(dx) > 10 || abs(dy) > 10) {
                         isClick = false
                     }
-                    params.x = initialX + dx
-                    params.y = initialY + dy
+                    
+                    val metrics = resources.displayMetrics
+                    val maxX = metrics.widthPixels - v.width
+                    val maxY = metrics.heightPixels - v.height
+                    
+                    var newX = initialX + dx
+                    var newY = initialY + dy
+                    
+                    if (newX < 0) newX = 0
+                    if (newX > maxX) newX = maxX
+                    if (newY < 0) newY = 0
+                    if (newY > maxY) newY = maxY
+                    
+                    params.x = newX
+                    params.y = newY
+                    
                     windowManager.updateViewLayout(floatingView, params)
                     true
                 }
@@ -584,6 +598,11 @@ class BlackScreenService : Service() {
 
     private fun updateFloatingBubbleStyle() {
         val config = smartAutomationManager.settings.getConfig()
+        if (config.hideFloatingButton) {
+            floatingView?.visibility = View.GONE
+        } else {
+            floatingView?.visibility = View.VISIBLE
+        }
         val size = (150 * config.floatingLockSize).toInt()
         val padding = (24 * config.floatingLockSize).toInt()
         
