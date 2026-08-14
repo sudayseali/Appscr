@@ -558,17 +558,15 @@ fun ZenithApp(
 
             // Expandable Settings Cards
             ExpandableConfigSection(
-                title = stringResource(R.string.display_settings),
-                subtitle = "Customize screen behaviour & lock style",
+                title = "Screen & Display",
+                subtitle = "Clock, always-on display & pixel shift",
                 icon = Icons.Default.DisplaySettings,
                 iconColor = ZenithAccent,
-                badgeText = "3 Active",
+                badgeText = "Display",
                 badgeColor = ZenithAccent,
                 isExpanded = false
             ) {
-                LanguageCard()
-
-                SmartTriggerCard(
+SmartTriggerCard(
                     title = stringResource(R.string.always_on_display),
                     subtitle = "Show clock & subtle notifications on dark screen",
                     icon = Icons.Default.Schedule,
@@ -600,7 +598,8 @@ fun ZenithApp(
                     }
                 }
 
-                SmartTriggerCard(
+
+SmartTriggerCard(
                     title = stringResource(R.string.oled_pixel_shift),
                     subtitle = "Prevent screen burn-in with micro shifts",
                     icon = Icons.Default.Grain,
@@ -614,7 +613,21 @@ fun ZenithApp(
                     OledPixelShiftGraphic()
                 }
 
-                SmartTriggerCard(
+
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExpandableConfigSection(
+                title = "Controls & Overlays",
+                subtitle = "Unlock methods & floating buttons",
+                icon = Icons.Default.TouchApp,
+                iconColor = Color(0xFFAB47BC),
+                badgeText = "Controls",
+                badgeColor = Color(0xFFAB47BC),
+                isExpanded = false
+            ) {
+SmartTriggerCard(
                     title = stringResource(R.string.skip_unlock_screen),
                     subtitle = "Directly unlock device on tap gesture",
                     icon = Icons.Default.LockOpen,
@@ -638,48 +651,8 @@ fun ZenithApp(
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ExpandableConfigSection(
-                title = stringResource(R.string.smart_triggers),
-                subtitle = "Auto actions based on motion sensors",
-                icon = Icons.Default.Sensors,
-                iconColor = ZenithSecondary,
-                badgeText = "4 Active",
-                badgeColor = ZenithSecondary,
-                isExpanded = false
-            ) {
-                SmartTriggerCard(
-                    title = stringResource(R.string.pocket_mode),
-                    subtitle = "Auto-lock in pocket",
-                    icon = Icons.Default.Smartphone,
-                    iconTint = Color(0xFF00E676),
-                    checked = autoConfig.isPocketModeEnabled,
-                    onCheckedChange = {
-                        autoConfig = autoConfig.copy(isPocketModeEnabled = it)
-                        automationSettings.updateConfig(autoConfig)
-                    }
-                ) {
-                    PocketModeWaveGraphic()
-                }
-
-                SmartTriggerCard(
-                    title = stringResource(R.string.shake_to_wake),
-                    subtitle = "Shake to unlock",
-                    icon = Icons.Default.Vibration,
-                    iconTint = Color(0xFF00E5FF),
-                    checked = autoConfig.isShakeToWakeEnabled,
-                    onCheckedChange = {
-                        autoConfig = autoConfig.copy(isShakeToWakeEnabled = it)
-                        automationSettings.updateConfig(autoConfig)
-                    }
-                ) {
-                    ShakeToWakeGraphic()
-                }
-
-                SmartTriggerCard(
+SmartTriggerCard(
                     title = stringResource(R.string.floating_action_button),
                     subtitle = "Quick access button",
                     icon = Icons.Default.TouchApp,
@@ -693,7 +666,8 @@ fun ZenithApp(
                     FloatingButtonGraphic()
                 }
 
-                Text(
+
+Text(
                     text = stringResource(R.string.floating_lock_style),
                     color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
@@ -818,7 +792,8 @@ fun ZenithApp(
                 }
 
 
-                Text(
+
+Text(
                     text = stringResource(R.string.floating_lock_size),
                     color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
@@ -840,7 +815,51 @@ fun ZenithApp(
                     )
                 )
 
-                Text(
+
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExpandableConfigSection(
+                title = "Automation (Sensors)",
+                subtitle = "Pocket mode & shake gestures",
+                icon = Icons.Default.Sensors,
+                iconColor = ZenithSecondary,
+                badgeText = "Sensors",
+                badgeColor = ZenithSecondary,
+                isExpanded = false
+            ) {
+SmartTriggerCard(
+                    title = stringResource(R.string.pocket_mode),
+                    subtitle = "Auto-lock in pocket",
+                    icon = Icons.Default.Smartphone,
+                    iconTint = Color(0xFF00E676),
+                    checked = autoConfig.isPocketModeEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isPocketModeEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
+                ) {
+                    PocketModeWaveGraphic()
+                }
+
+
+SmartTriggerCard(
+                    title = stringResource(R.string.shake_to_wake),
+                    subtitle = "Shake to unlock",
+                    icon = Icons.Default.Vibration,
+                    iconTint = Color(0xFF00E5FF),
+                    checked = autoConfig.isShakeToWakeEnabled,
+                    onCheckedChange = {
+                        autoConfig = autoConfig.copy(isShakeToWakeEnabled = it)
+                        automationSettings.updateConfig(autoConfig)
+                    }
+                ) {
+                    ShakeToWakeGraphic()
+                }
+
+
+Text(
                     text = stringResource(R.string.wake_gesture),
                     color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
@@ -891,6 +910,7 @@ fun ZenithApp(
                     }
                 }
 
+
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -900,18 +920,34 @@ fun ZenithApp(
                 subtitle = "Protect app access & privacy controls",
                 icon = Icons.Default.Security,
                 iconColor = ZenithCyan,
-                badgeText = "Biometric Off",
+                badgeText = "Biometric",
                 badgeColor = ZenithCyan,
                 isExpanded = false
             ) {
-                ZenithSwitchRow(
+ZenithSwitchRow(
                     title = stringResource(R.string.enable_biometric),
-                    subtitle = "Use fingerprint or face recognition to access app settings",
+                    subtitle = "Require fingerprint to unlock screen and stop service",
                     checked = autoConfig.isBiometricEnabled
                 ) {
                     autoConfig = autoConfig.copy(isBiometricEnabled = it)
                     automationSettings.updateConfig(autoConfig)
                 }
+
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExpandableConfigSection(
+                title = "General",
+                subtitle = "App language and preferences",
+                icon = Icons.Default.Settings,
+                iconColor = Color.Gray,
+                badgeText = "General",
+                badgeColor = Color.Gray,
+                isExpanded = false
+            ) {
+                LanguageCard()
+
             }
 
             Spacer(modifier = Modifier.height(16.dp))

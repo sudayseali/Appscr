@@ -432,6 +432,9 @@ class BlackScreenService : Service() {
                     isUnlockScreenVisible = false
                     aodContainer?.visibility = android.view.View.GONE
                     unlockButton?.visibility = android.view.View.GONE
+                    
+                    showErrorShakeAnimation()
+                    
                     handler.removeCallbacks(resetToBlackRunnable)
                     handler.postDelayed(resetToBlackRunnable, 10000)
                 }
@@ -443,6 +446,24 @@ class BlackScreenService : Service() {
             smartAutomationManager.handleManualDismiss()
             showFloatingBubbleInternal()
         }
+    }
+
+    private var errorLockIcon: ImageView? = null
+
+    private fun showErrorShakeAnimation() {
+        errorLockIcon?.visibility = View.VISIBLE
+        val shake = android.view.animation.TranslateAnimation(0f, 20f, 0f, 0f)
+        shake.duration = 50
+        shake.repeatMode = android.view.animation.Animation.REVERSE
+        shake.repeatCount = 5
+        shake.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
+            override fun onAnimationStart(animation: android.view.animation.Animation?) {}
+            override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
+            override fun onAnimationEnd(animation: android.view.animation.Animation?) {
+                errorLockIcon?.visibility = View.GONE
+            }
+        })
+        errorLockIcon?.startAnimation(shake)
     }
 
     @android.annotation.SuppressLint("ClickableViewAccessibility")
@@ -558,6 +579,15 @@ class BlackScreenService : Service() {
         ).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
                 bottomMargin = 150
+            })
+            
+            errorLockIcon = ImageView(this@BlackScreenService).apply {
+                setImageResource(R.drawable.ic_lock)
+                setColorFilter(Color.RED)
+                visibility = View.GONE
+            }
+            addView(errorLockIcon, FrameLayout.LayoutParams(120, 120).apply {
+                gravity = Gravity.CENTER
             })
         }
 

@@ -15,6 +15,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -75,7 +76,10 @@ class BlackoutActivity : ComponentActivity() {
                     if (isBiometricEnabled) {
                         com.noxscreen.app.security.AuthenticationManager.startAuthentication(
                             onSuccess = { finish() },
-                            onFailure = { /* do nothing, stay in BlackoutActivity */ }
+                            onFailure = { 
+                                val errorIntent = Intent("SHOW_BIOMETRIC_ERROR")
+                                sendBroadcast(errorIntent)
+                            }
                         )
                         val intent = Intent(this, BiometricAuthActivity::class.java)
                         startActivity(intent)
@@ -96,6 +100,36 @@ fun BlackoutScreen(initialShowUnlock: Boolean = false, onUnlock: () -> Unit) {
     
     var tapCount by remember { mutableStateOf(0) }
     var isUnlockScreenVisible by remember { mutableStateOf(initialShowUnlock) }
+    var showError by remember { mutableStateOf(false) }
+    
+    DisposableEffect(context) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: android.content.Context?, intent: Intent?) {
+                if (intent?.action == "SHOW_BIOMETRIC_ERROR") {
+                    showError = true
+                    isUnlockScreenVisible = false
+                }
+            }
+        }
+        val filter = android.content.IntentFilter("SHOW_BIOMETRIC_ERROR")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        onDispose {
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {}
+        }
+    }
+    
+    LaunchedEffect(showError) {
+        if (showError) {
+            delay(1000)
+            showError = false
+        }
+    }
     
     LaunchedEffect(tapCount) {
         if (tapCount > 0 && !isUnlockScreenVisible) {
@@ -150,6 +184,25 @@ fun BlackoutScreen(initialShowUnlock: Boolean = false, onUnlock: () -> Unit) {
     ) {
         if (isUnlockScreenVisible) {
             UnlockScreenView(onUnlock = onUnlock)
+        }
+        
+        if (showError) {
+            val offsetX = remember { androidx.compose.animation.core.Animatable(0f) }
+            LaunchedEffect(Unit) {
+                for (i in 0..5) {
+                    offsetX.animateTo(20f, animationSpec = androidx.compose.animation.core.tween(50))
+                    offsetX.animateTo(-20f, animationSpec = androidx.compose.animation.core.tween(50))
+                }
+                offsetX.animateTo(0f, animationSpec = androidx.compose.animation.core.tween(50))
+            }
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Error",
+                tint = Color.Red,
+                modifier = Modifier
+                    .size(64.dp)
+                    .offset(x = offsetX.value.dp)
+            )
         }
     }
 }
