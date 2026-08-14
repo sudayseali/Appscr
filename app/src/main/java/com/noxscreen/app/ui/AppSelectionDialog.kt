@@ -1,6 +1,9 @@
 package com.noxscreen.app.ui
 
 import android.content.pm.PackageManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
@@ -19,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -94,11 +99,11 @@ fun AppSelectionDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color = Color(0xFF0F172A),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = Color(0xFF0B1220),
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.95f)
+                .fillMaxHeight(0.92f)
         ) {
             Column(
                 modifier = Modifier
@@ -108,22 +113,23 @@ fun AppSelectionDialog(
                 // Top handle indicator
                 Box(
                     modifier = Modifier
-                        .width(40.dp)
+                        .width(44.dp)
                         .height(4.dp)
-                        .background(Color.Gray.copy(alpha = 0.5f), CircleShape)
+                        .background(Color(0xFF334155), CircleShape)
                         .align(Alignment.CenterHorizontally)
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
                     text = "Select Apps to Block",
                     color = Color.White,
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.3).sp
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Search Row
                 TextField(
@@ -132,28 +138,46 @@ fun AppSelectionDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    placeholder = { Text("Search apps...", color = Color.Gray, fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
+                    placeholder = { Text("Search installed applications...", color = ZenithTextSubtle, fontSize = 13.5.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = ZenithTextMuted, modifier = Modifier.size(20.dp)) },
+                    trailingIcon = {
+                        AnimatedVisibility(visible = searchQuery.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear", tint = ZenithTextMuted, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFF1E293B),
-                        unfocusedContainerColor = Color(0xFF1E293B),
+                        focusedContainerColor = Color(0xFF131D31),
+                        unfocusedContainerColor = Color(0xFF131D31),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
-                        cursorColor = ZenithAccent
+                        cursorColor = ZenithAccent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Selection Info Box
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF064E3B).copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color(0xFF00E676).copy(alpha = 0.12f),
+                                    Color(0xFF00E5FF).copy(alpha = 0.08f)
+                                )
+                            )
+                        )
+                        .border(1.dp, ZenithAccent.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                        .padding(14.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -161,44 +185,49 @@ fun AppSelectionDialog(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .background(Color(0xFF059669).copy(alpha = 0.2f), CircleShape),
+                                .size(36.dp)
+                                .background(ZenithAccent.copy(alpha = 0.2f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Security, contentDescription = "Security", tint = ZenithAccent)
+                            Icon(Icons.Default.Security, contentDescription = "Security", tint = ZenithAccent, modifier = Modifier.size(20.dp))
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${selectedApps.size} apps selected",
+                                text = "${selectedApps.size} apps protected",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
+                                fontSize = 14.sp
                             )
                             Text(
-                                text = "These apps will be blocked during scheduled time",
-                                color = Color.Gray,
-                                fontSize = 12.sp
+                                text = "Screen locks automatically when launched",
+                                color = ZenithTextMuted,
+                                fontSize = 11.5.sp
                             )
                         }
 
-                        Text(
-                            text = "Clear All",
-                            color = ZenithAccent,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clickable { selectedApps.clear() }
-                        )
+                        if (selectedApps.isNotEmpty()) {
+                            Text(
+                                text = "Clear",
+                                color = Color(0xFFFF5252),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { selectedApps.clear() }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 if (isLoading) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = ZenithAccent)
+                        CircularProgressIndicator(color = ZenithAccent, modifier = Modifier.size(36.dp), strokeWidth = 3.dp)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
@@ -208,6 +237,7 @@ fun AppSelectionDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) Color(0xFF162544).copy(alpha = 0.5f) else Color.Transparent)
                                     .clickable {
                                         if (isSelected) {
                                             selectedApps.remove(app.packageName)
@@ -215,18 +245,18 @@ fun AppSelectionDialog(
                                             selectedApps.add(app.packageName)
                                         }
                                     }
-                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                    .padding(vertical = 9.dp, horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 app.iconBitmap?.let { bitmap ->
                                     Image(
                                         bitmap = bitmap,
                                         contentDescription = app.appName,
-                                        modifier = Modifier.size(38.dp)
+                                        modifier = Modifier.size(36.dp)
                                     )
                                 } ?: Box(
                                     modifier = Modifier
-                                        .size(38.dp)
+                                        .size(36.dp)
                                         .background(Color(0xFF1E293B), CircleShape)
                                 )
 
@@ -234,9 +264,9 @@ fun AppSelectionDialog(
 
                                 Text(
                                     text = app.appName,
-                                    color = Color.White,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    color = if (isSelected) Color.White else ZenithTextSecondary,
+                                    fontSize = 14.5.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                     modifier = Modifier.weight(1f)
                                 )
 
@@ -246,12 +276,12 @@ fun AppSelectionDialog(
                                         .size(24.dp)
                                         .background(
                                             color = if (isSelected) ZenithAccent else Color.Transparent,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = RoundedCornerShape(7.dp)
                                         )
                                         .border(
                                             width = 1.5.dp,
-                                            color = if (isSelected) ZenithAccent else Color.Gray.copy(alpha = 0.5f),
-                                            shape = RoundedCornerShape(6.dp)
+                                            color = if (isSelected) ZenithAccent else Color(0xFF334155),
+                                            shape = RoundedCornerShape(7.dp)
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -259,8 +289,8 @@ fun AppSelectionDialog(
                                         Icon(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = null,
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(16.dp)
+                                            tint = Color(0xFF030712),
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
@@ -273,35 +303,41 @@ fun AppSelectionDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp, bottom = 8.dp),
+                        .padding(top = 14.dp, bottom = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
                         onClick = onDismissRequest,
                         modifier = Modifier
                             .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
+                            .height(50.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = ZenithAccent
+                            contentColor = ZenithTextMuted
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E293B))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2F4D))
                     ) {
-                        Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("Cancel", fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     Button(
                         onClick = { onAppsSelected(selectedApps.toSet()) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
+                            .height(50.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ZenithAccent)
                     ) {
-                        Text("Save (${selectedApps.size})", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (selectedApps.isNotEmpty()) "Save (${selectedApps.size})" else "Save",
+                            color = Color(0xFF030712),
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
         }
     }
 }
+

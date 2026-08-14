@@ -667,11 +667,12 @@ SmartTriggerCard(
                 }
 
 
-Text(
-                    text = stringResource(R.string.floating_lock_style),
-                    color = Color(0xFF00E5FF),
-                    fontSize = 13.sp,
+                Text(
+                    text = stringResource(R.string.floating_lock_style).uppercase(),
+                    color = ZenithCyan,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
                     modifier = Modifier.padding(top = 18.dp, bottom = 12.dp)
                 )
 
@@ -717,14 +718,14 @@ Text(
                         Column(
                             modifier = Modifier
                                 .width(120.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(
-                                    if (isSelected) Color(0xFF00E676).copy(alpha = 0.15f) else Color(0xFF0F172A)
+                                    if (isSelected) Color(0xFF00E676).copy(alpha = 0.12f) else Color(0xFF0B1426)
                                 )
                                 .border(
-                                    if (isSelected) 2.dp else 1.dp,
-                                    if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
-                                    RoundedCornerShape(16.dp)
+                                    width = if (isSelected) 1.8.dp else 1.dp,
+                                    color = if (isSelected) ZenithAccent else Color(0xFF1E2D47),
+                                    shape = RoundedCornerShape(18.dp)
                                 )
                                 .clickable {
                                     if (isUnlocked) {
@@ -750,18 +751,30 @@ Text(
                                 .padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
-                                painter = painter,
-                                contentDescription = null,
-                                tint = if (isSelected) Color(0xFF00E676) else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
-                                modifier = Modifier.size(32.dp).padding(bottom = 8.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .background(
+                                        if (isSelected) ZenithAccent.copy(alpha = 0.18f) else Color(0xFF131D31),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painter,
+                                    contentDescription = null,
+                                    tint = if (isSelected) ZenithAccent else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
                             
                             val displayName = styleName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }.replace("_", " ")
                             Text(
                                 text = displayName,
                                 color = Color.White,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
@@ -769,37 +782,56 @@ Text(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             if (isSelected) {
-                                Text("ACTIVE", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Box(
+                                    modifier = Modifier
+                                        .background(ZenithAccent.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                                        .border(1.dp, ZenithAccent.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text("ACTIVE", color = ZenithAccent, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp)
+                                }
                             } else if (isUnlocked) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(12.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Unlocked", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = ZenithAccent, modifier = Modifier.size(11.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("Unlocked", color = ZenithAccent, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
                                 }
                                 if (remainingTime != null) {
-                                    Text(remainingTime, color = Color.Gray, fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
+                                    Text(remainingTime, color = ZenithTextMuted, fontSize = 9.5.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
                                 }
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(12.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Locked", color = Color(0xFFFFB300), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(11.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("Locked", color = Color(0xFFFFB300), fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
                                 }
-                                Text("Watch Video", color = Color(0xFF00E5FF), fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
+                                Text("Watch Ad", color = ZenithCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
                             }
                         }
                     }
                 }
 
-
-
-Text(
-                    text = stringResource(R.string.floating_lock_size),
-                    color = Color(0xFF00E5FF),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.floating_lock_size).uppercase(),
+                        color = ZenithCyan,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        text = "${(autoConfig.floatingLockSize * 100).toInt()}%",
+                        color = ZenithAccent,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
                 Slider(
                     value = autoConfig.floatingLockSize,
@@ -809,12 +841,11 @@ Text(
                     },
                     valueRange = 0.5f..2.0f,
                     colors = SliderDefaults.colors(
-                        thumbColor = Color(0xFF00E676),
-                        activeTrackColor = Color(0xFF00E676),
+                        thumbColor = ZenithAccent,
+                        activeTrackColor = ZenithAccent,
                         inactiveTrackColor = Color(0xFF1E293B)
                     )
                 )
-
 
             }
 
@@ -843,7 +874,6 @@ SmartTriggerCard(
                     PocketModeWaveGraphic()
                 }
 
-
 SmartTriggerCard(
                     title = stringResource(R.string.shake_to_wake),
                     subtitle = "Shake to unlock",
@@ -858,54 +888,85 @@ SmartTriggerCard(
                     ShakeToWakeGraphic()
                 }
 
-
-Text(
-                    text = stringResource(R.string.wake_gesture),
-                    color = Color(0xFF00E5FF),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 14.dp, bottom = 10.dp)
-                )
-                
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).padding(bottom = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp, bottom = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${autoConfig.tapsToWake} taps to wake screen",
-                        color = Color.White,
-                        fontSize = 14.sp
+                        text = stringResource(R.string.wake_gesture).uppercase(),
+                        color = ZenithCyan,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { 
-                                if (autoConfig.tapsToWake > 1) {
-                                    autoConfig = autoConfig.copy(tapsToWake = autoConfig.tapsToWake - 1)
-                                    automationSettings.updateConfig(autoConfig)
-                                }
-                            },
-                            modifier = Modifier.size(36.dp).background(Color(0xFF1E293B), CircleShape)
-                        ) {
-                            Icon(Icons.Default.Remove, contentDescription = "Decrease taps", tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0C1322))
+                        .border(1.dp, Color(0xFF1B2C46), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Taps to Wake",
+                                color = Color.White,
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Number of screen taps to illuminate",
+                                color = ZenithTextMuted,
+                                fontSize = 11.5.sp
+                            )
                         }
-                        Text(
-                            text = autoConfig.tapsToWake.toString(),
-                            color = Color(0xFF00E5FF),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        IconButton(
-                            onClick = { 
-                                if (autoConfig.tapsToWake < 10) {
-                                    autoConfig = autoConfig.copy(tapsToWake = autoConfig.tapsToWake + 1)
-                                    automationSettings.updateConfig(autoConfig)
-                                }
-                            },
-                            modifier = Modifier.size(36.dp).background(Color(0xFF1E293B), CircleShape)
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(Color(0xFF131D31), RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0xFF1E2F4D), RoundedCornerShape(12.dp))
+                                .padding(4.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Increase taps", tint = Color.White, modifier = Modifier.size(16.dp))
+                            IconButton(
+                                onClick = { 
+                                    if (autoConfig.tapsToWake > 1) {
+                                        autoConfig = autoConfig.copy(tapsToWake = autoConfig.tapsToWake - 1)
+                                        automationSettings.updateConfig(autoConfig)
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Remove, contentDescription = "Decrease taps", tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
+                            Text(
+                                text = autoConfig.tapsToWake.toString(),
+                                color = ZenithCyan,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                            IconButton(
+                                onClick = { 
+                                    if (autoConfig.tapsToWake < 10) {
+                                        autoConfig = autoConfig.copy(tapsToWake = autoConfig.tapsToWake + 1)
+                                        automationSettings.updateConfig(autoConfig)
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Increase taps", tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 }
@@ -992,10 +1053,10 @@ ZenithSwitchRow(
                             context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ZenithAccent),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     ) {
-                        Text("Grant Usage Access", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text("Grant Usage Access", color = Color(0xFF030712), fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
                     }
                 } else {
                     
@@ -1009,11 +1070,20 @@ ZenithSwitchRow(
                     }
 
                     if (autoConfig.isScheduleEnabled) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
-                                Text("Start Time", color = ZenithTextMuted, fontSize = 12.sp)
-                                Button(
-                                    onClick = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Start Time Card
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color(0xFF0C1322))
+                                    .border(1.dp, Color(0xFF1B2C46), RoundedCornerShape(14.dp))
+                                    .clickable {
                                         android.app.TimePickerDialog(
                                             context,
                                             { _, hour, minute ->
@@ -1024,21 +1094,33 @@ ZenithSwitchRow(
                                             autoConfig.scheduleStartTimeMinute,
                                             true
                                         ).show()
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = String.format("%02d:%02d", autoConfig.scheduleStartTimeHour, autoConfig.scheduleStartTimeMinute),
-                                        color = Color.White
-                                    )
+                                    }
+                                    .padding(12.dp)
+                            ) {
+                                Column {
+                                    Text("START TIME", color = ZenithTextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = ZenithCyan, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = String.format("%02d:%02d", autoConfig.scheduleStartTimeHour, autoConfig.scheduleStartTimeMinute),
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
-                            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                                Text("End Time", color = ZenithTextMuted, fontSize = 12.sp)
-                                Button(
-                                    onClick = {
+
+                            // End Time Card
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color(0xFF0C1322))
+                                    .border(1.dp, Color(0xFF1B2C46), RoundedCornerShape(14.dp))
+                                    .clickable {
                                         android.app.TimePickerDialog(
                                             context,
                                             { _, hour, minute ->
@@ -1049,15 +1131,22 @@ ZenithSwitchRow(
                                             autoConfig.scheduleEndTimeMinute,
                                             true
                                         ).show()
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = String.format("%02d:%02d", autoConfig.scheduleEndTimeHour, autoConfig.scheduleEndTimeMinute),
-                                        color = Color.White
-                                    )
+                                    }
+                                    .padding(12.dp)
+                            ) {
+                                Column {
+                                    Text("END TIME", color = ZenithTextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = ZenithSecondary, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = String.format("%02d:%02d", autoConfig.scheduleEndTimeHour, autoConfig.scheduleEndTimeMinute),
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1080,23 +1169,30 @@ ZenithSwitchRow(
 
                         Button(
                             onClick = { showAppSelection = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = ZenithSecondary.copy(alpha = 0.2f)),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF142238)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, ZenithCyan.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 14.dp)
+                                .height(48.dp)
                         ) {
+                            Icon(Icons.Default.Apps, contentDescription = null, tint = ZenithCyan, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Select Apps to Block",
-                                color = ZenithAccent,
-                                fontWeight = FontWeight.Bold
+                                text = if (autoConfig.blockedApps.isNotEmpty()) "Select Apps (${autoConfig.blockedApps.size} Selected)" else "Select Apps to Block",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
                             )
                         }
 
                         if (autoConfig.blockedApps.isNotEmpty()) {
                             Text(
-                                text = "Blocked: ${autoConfig.blockedApps.size} apps",
+                                text = "Active Shield: ${autoConfig.blockedApps.size} applications blocked during session",
                                 color = ZenithTextMuted,
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(top = 4.dp)
+                                fontSize = 11.5.sp,
+                                modifier = Modifier.padding(top = 6.dp, start = 2.dp)
                             )
                         }
                     }
