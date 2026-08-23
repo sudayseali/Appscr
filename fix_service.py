@@ -1,27 +1,9 @@
-with open("app/src/main/java/com/noxscreen/app/BlackScreenService.kt", "r", encoding="utf-8") as f:
+import re
+
+with open('app/src/main/java/com/noxscreen/app/BlackScreenService.kt', 'r') as f:
     content = f.read()
 
-target = """        fun updateTile(context: android.content.Context) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                android.service.quicksettings.TileService.requestListeningState(
-                    context, 
-                    android.content.ComponentName(context, NoxTileService::class.java)
-                    }
-        )
-            }"""
+# First, let's fix the broken onStartCommand and insert the missing functions.
+# We will find the broken block that starts at line 178 and ends at the broken `} else {`
 
-replacement = """        fun updateTile(context: android.content.Context) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                android.service.quicksettings.TileService.requestListeningState(
-                    context, 
-                    android.content.ComponentName(context, NoxTileService::class.java)
-                )
-            }"""
-
-if target in content:
-    content = content.replace(target, replacement)
-else:
-    print("target not found")
-
-with open("app/src/main/java/com/noxscreen/app/BlackScreenService.kt", "w", encoding="utf-8") as f:
-    f.write(content)
+# Let's find exactly what's there.

@@ -33,6 +33,25 @@ import java.util.Date
 import java.util.Locale
 
 class BlackoutActivity : ComponentActivity() {
+    private val authLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            finish()
+        } else {
+            val errorIntent = android.content.Intent("SHOW_BIOMETRIC_ERROR")
+            sendBroadcast(errorIntent)
+        }
+    }
+
+    
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        // Intercept back button to prevent Focus Mode bypass
+        val homeIntent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+            addCategory(android.content.Intent.CATEGORY_HOME)
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        startActivity(homeIntent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,15 +93,9 @@ class BlackoutActivity : ComponentActivity() {
                     val settings = com.noxscreen.app.automation.AutomationSettings(this)
                     val isBiometricEnabled = settings.getConfig().isBiometricEnabled
                     if (isBiometricEnabled) {
-                        com.noxscreen.app.security.AuthenticationManager.startAuthentication(
-                            onSuccess = { finish() },
-                            onFailure = { 
-                                val errorIntent = Intent("SHOW_BIOMETRIC_ERROR")
-                                sendBroadcast(errorIntent)
-                            }
-                        )
-                        val intent = Intent(this, BiometricAuthActivity::class.java)
-                        startActivity(intent)
+                        com.noxscreen.app.security.AuthenticationManager.setAuthenticating()
+                        val intent = android.content.Intent(this@BlackoutActivity, BiometricAuthActivity::class.java)
+                        authLauncher.launch(intent)
                     } else {
                         finish() 
                     }

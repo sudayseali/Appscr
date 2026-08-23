@@ -97,20 +97,24 @@ class UsageLimitMonitor(
             val calendar = Calendar.getInstance()
             val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
             val currentMinute = calendar.get(Calendar.MINUTE)
+            val currentTotalMinutes = currentHour * 60 + currentMinute
             
-            if (UsageLimitEvaluator.isWithinSchedule(
-                    currentHour = currentHour,
-                    currentMinute = currentMinute,
-                    startHour = config.scheduleStartTimeHour,
-                    startMinute = config.scheduleStartTimeMinute,
-                    endHour = config.scheduleEndTimeHour,
-                    endMinute = config.scheduleEndTimeMinute
-                )) {
+            val startTotalMinutes = config.scheduleStartTimeHour * 60 + config.scheduleStartTimeMinute
+            val endTotalMinutes = config.scheduleEndTimeHour * 60 + config.scheduleEndTimeMinute
+            
+            val isWithinSchedule = if (startTotalMinutes <= endTotalMinutes) {
+                currentTotalMinutes in startTotalMinutes until endTotalMinutes
+            } else {
+                // Crosses midnight
+                currentTotalMinutes >= startTotalMinutes || currentTotalMinutes < endTotalMinutes
+            }
+            
+            if (isWithinSchedule) {
                 shouldBlock = true
             }
         }
 
-        // Check Usage Limit using daily aggregate + current session with midnight rollover protection
+        // Check Usage Limit using daily aggregate + current session
         if (!shouldBlock && config.isUsageLimitsEnabled) {
             val calendar = Calendar.getInstance()
             calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -123,23 +127,16 @@ class UsageLimitMonitor(
             val usageStat = stats?.find { it.packageName == foregroundApp }
             val osReportedTime = usageStat?.totalTimeInForeground ?: 0L
             
-            val totalTimeMs = UsageLimitEvaluator.calculateTotalUsageToday(
-                osReportedTimeMs = osReportedTime,
-                currentSessionStartTime = currentSessionStartTime,
-                currentTimeMs = System.currentTimeMillis(),
-                startOfDayMs = startOfDay
-            )
+            val currentSessionDuration = System.currentTimeMillis() - currentSessionStartTime
+            val totalTimeMs = osReportedTime + currentSessionDuration
 
-            when (val result = UsageLimitEvaluator.evaluateUsageLimit(totalTimeMs, config.usageLimitDurationMinutes)) {
-                is UsageEvaluationResult.BLOCKED -> {
-                    shouldBlock = true
-                }
-                is UsageEvaluationResult.WARNING -> {
-                    warningMessage = "⚠️ Waqtigaagu wuu dhamaanayaa (${result.remainingSeconds}s left)!"
-                }
-                is UsageEvaluationResult.ALLOWED -> {
-                    // Normal
-                }
+            val limitMs = config.usageLimitDurationMinutes * 60 * 1000L
+            val remainingMs = limitMs - totalTimeMs
+            
+            if (remainingMs <= 0) {
+                shouldBlock = true
+            } else if (remainingMs in 1..10000) { // 10 seconds soft warning
+                warningMessage = "⚠️ Waqtigaagu wuu dhamaanayaa (10s left)!"
             }
         }
 

@@ -11,22 +11,6 @@ import android.os.SystemClock
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-data class PocketConfig(
-    val enterConfidenceThreshold: Int = 75,
-    val exitConfidenceThreshold: Int = 40,
-    val enterDebounceMs: Long = 500L,
-    val exitDebounceMs: Long = 200L,
-    val pitchBlackLux: Float = 2.0f,
-    val darkLux: Float = 15.0f
-)
-
-enum class PocketState {
-    OUT_OF_POCKET,
-    DETECTING_POCKET,
-    IN_POCKET,
-    DETECTING_REMOVAL
-}
-
 class SensorHandler(context: Context) : SensorEventListener {
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
     private val proximitySensor = sensorManager?.getDefaultSensor(Sensor.TYPE_PROXIMITY)
@@ -69,7 +53,6 @@ class SensorHandler(context: Context) : SensorEventListener {
     // State Machine
     private var pocketState = PocketState.OUT_OF_POCKET
     private var isCurrentlyInPocket = false
-    private val config = PocketConfig()
     private var stateTimerRunnable: Runnable? = null
     private var stateTransitionTime = 0L
 
@@ -80,18 +63,18 @@ class SensorHandler(context: Context) : SensorEventListener {
         this.enableShake = enableShake
         this.enableProximity = enableProximity
 
-        if (sensorManager == null) return
+        val sm = sensorManager ?: return
 
         if (enableProximity) {
-            if (proximitySensor != null) {
-                isProximityActive = sensorManager.registerListener(
+            if (proximitySensor != null && !isProximityActive) {
+                isProximityActive = sm.registerListener(
                     this,
                     proximitySensor,
                     SensorManager.SENSOR_DELAY_NORMAL
                 )
             }
-            if (lightSensor != null) {
-                isLightActive = sensorManager.registerListener(
+            if (lightSensor != null && !isLightActive) {
+                isLightActive = sm.registerListener(
                     this,
                     lightSensor,
                     SensorManager.SENSOR_DELAY_NORMAL
@@ -100,16 +83,16 @@ class SensorHandler(context: Context) : SensorEventListener {
             }
         }
 
-        if ((enableProximity || enableMotion || enableShake) && accelerometer != null) {
+        if ((enableProximity || enableMotion || enableShake) && accelerometer != null && !isMotionActive) {
             val delay = if (enableShake) SensorManager.SENSOR_DELAY_UI else SensorManager.SENSOR_DELAY_NORMAL
-            val registered = sensorManager.registerListener(
+            val registered = sm.registerListener(
                 this,
                 accelerometer,
                 delay
             )
             isMotionActive = registered
             hasGravity = registered
-            
+
             if (enableMotion && registered) {
                 scheduleStationaryCheck()
             }
@@ -117,8 +100,14 @@ class SensorHandler(context: Context) : SensorEventListener {
     }
 
     fun stop() {
-        if (sensorManager != null) {
-            sensorManager.unregisterListener(this)
+        sensorManager?.let { sm ->
+            if (isProximityActive || isMotionActive || isLightActive) {
+                try {
+                    sm.unregisterListener(this)
+                } catch (e: Exception) {
+                    // Safe unregister
+                }
+            }
         }
         isProximityActive = false
         isMotionActive = false
@@ -126,11 +115,11 @@ class SensorHandler(context: Context) : SensorEventListener {
         hasLightSensor = false
         hasGravity = false
         gravityInitialized = false
-        
+
         stationaryCheckRunnable?.let { mainHandler.removeCallbacks(it) }
         stationaryCheckRunnable = null
         cancelStateTimer()
-        
+
         pocketState = PocketState.OUT_OF_POCKET
         isCurrentlyInPocket = false
     }
@@ -148,35 +137,6 @@ class SensorHandler(context: Context) : SensorEventListener {
             }
         }
         mainHandler.postDelayed(stationaryCheckRunnable!!, 1000L)
-    }
-
-    private fun calculatePocketConfidence(): Int {
-        if (!isSensorProximityNear) return 0
-
-        var confidence = 50
-
-        if (hasLightSensor) {
-            if (lux < config.pitchBlackLux) confidence += 30
-            else if (lux < config.darkLux) confidence += 15
-        } else {
-            confidence += 15
-        }
-
-        if (hasGravity) {
-            val isFlatFaceUp = gravityZ > 7.5f && abs(gravityX) < 4.0f && abs(gravityY) < 4.0f
-            val isFaceDown = gravityZ < -7.0f && abs(gravityX) < 4.0f && abs(gravityY) < 4.0f
-            val isVertical = abs(gravityY) > 5.0f
-
-            if (isFlatFaceUp) {
-                confidence -= 50
-            } else if (isFaceDown || isVertical) {
-                confidence += 30
-            }
-        } else {
-            confidence += 20
-        }
-
-        return confidence.coerceIn(0, 100)
     }
 
     private fun cancelStateTimer() {
@@ -207,28 +167,36 @@ class SensorHandler(context: Context) : SensorEventListener {
     private fun processPocketState() {
         if (!enableProximity) return
 
-        val confidence = calculatePocketConfidence()
+        val confidence = PocketDecisionEngine.calculateConfidence(
+            isProximityNear = isSensorProximityNear,
+            hasLightSensor = hasLightSensor,
+            lux = lux,
+            hasGravity = hasGravity,
+            gx = gravityX,
+            gy = gravityY,
+            gz = gravityZ
+        )
 
         when (pocketState) {
             PocketState.OUT_OF_POCKET -> {
-                if (confidence >= config.enterConfidenceThreshold) {
-                    transitionState(PocketState.DETECTING_POCKET, config.enterDebounceMs)
+                if (PocketDecisionEngine.shouldEnterPocket(confidence)) {
+                    transitionState(PocketState.DETECTING_POCKET, PocketConstants.POCKET_ENTER_DEBOUNCE_MS)
                 }
             }
             PocketState.DETECTING_POCKET -> {
-                if (confidence < config.enterConfidenceThreshold) {
+                if (!PocketDecisionEngine.shouldEnterPocket(confidence)) {
                     transitionState(PocketState.OUT_OF_POCKET)
                 } else if (SystemClock.elapsedRealtime() >= stateTransitionTime) {
                     transitionState(PocketState.IN_POCKET)
                 }
             }
             PocketState.IN_POCKET -> {
-                if (confidence <= config.exitConfidenceThreshold) {
-                    transitionState(PocketState.DETECTING_REMOVAL, config.exitDebounceMs)
+                if (PocketDecisionEngine.shouldExitPocket(confidence)) {
+                    transitionState(PocketState.DETECTING_REMOVAL, PocketConstants.POCKET_EXIT_DEBOUNCE_MS)
                 }
             }
             PocketState.DETECTING_REMOVAL -> {
-                if (confidence > config.exitConfidenceThreshold) {
+                if (!PocketDecisionEngine.shouldExitPocket(confidence)) {
                     transitionState(PocketState.IN_POCKET)
                 } else if (SystemClock.elapsedRealtime() >= stateTransitionTime) {
                     transitionState(PocketState.OUT_OF_POCKET)
@@ -287,4 +255,3 @@ class SensorHandler(context: Context) : SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
-

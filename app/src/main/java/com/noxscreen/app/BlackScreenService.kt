@@ -35,8 +35,14 @@ import kotlin.math.abs
 
 class BlackScreenService : Service() {
     companion object {
+        private val _isRunningFlow = kotlinx.coroutines.flow.MutableStateFlow(false)
+        val isRunningFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = _isRunningFlow
+
         var isRunning = false
-            private set
+            private set(value) {
+                field = value
+                _isRunningFlow.value = value
+            }
             
         fun updateTile(context: android.content.Context) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
@@ -53,6 +59,8 @@ class BlackScreenService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
+    private var floatingIconView: ImageView? = null
+    private var floatingLayoutParams: WindowManager.LayoutParams? = null
     private var blackoutView: View? = null
     private var sleepTimerTextView: TextView? = null
     private var aodClockTextView: TextView? = null
@@ -176,19 +184,26 @@ class BlackScreenService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "AUTH_SUCCESS_STOP") {
+            stopSelfAndCleanUp()
+            return START_NOT_STICKY
+        }
         if (intent?.action == "STOP_SERVICE") {
+            if (usageLimitMonitor.isCurrentlyBlocked) {
+                return START_STICKY
+            }
             val config = smartAutomationManager.settings.getConfig()
             if (config.isBiometricEnabled) {
-                com.noxscreen.app.security.AuthenticationManager.startAuthentication(
-                    onSuccess = {
-                        stopSelfAndCleanUp()
-                    },
-                    onFailure = {
-                        // User cancelled or failed to authenticate to stop the service, keep running
-                    }
+                com.noxscreen.app.security.AuthenticationManager.setAuthenticating()
+                val successIntent = android.app.PendingIntent.getService(
+                    this, 1,
+                    android.content.Intent(this, BlackScreenService::class.java).apply { action = "AUTH_SUCCESS_STOP" },
+                    android.app.PendingIntent.FLAG_IMMUTABLE
                 )
-                val authIntent = android.content.Intent(this, BiometricAuthActivity::class.java)
-                authIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                val authIntent = android.content.Intent(this, BiometricAuthActivity::class.java).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra("EXTRA_SUCCESS_INTENT", successIntent)
+                }
                 startActivity(authIntent)
                 return START_STICKY
             } else {
@@ -196,104 +211,98 @@ class BlackScreenService : Service() {
                 return START_NOT_STICKY
             }
         }
-
-        isRunning = true
-        updateTile(this)
-        
-        if (false) {
+        if (intent?.action == "AUTH_SUCCESS_UNLOCK") {
             smartAutomationManager.handleManualDismiss()
             showFloatingBubbleInternal()
             return START_STICKY
         }
-        
-        if (intent?.action == "START_BLACKOUT") {
-            smartAutomationManager.handleUserActivation()
-            smartAutomationManager.startSensors()
-        } else if (false) {
-            blackoutView?.visibility = View.VISIBLE
-            isUnlockScreenVisible = false
-            aodContainer?.visibility = View.GONE
-            unlockButton?.visibility = View.GONE
-            
-            // Re-hide the screen after 10 seconds if user doesn't unlock
-            handler.removeCallbacks(resetToBlackRunnable)
-            handler.postDelayed(resetToBlackRunnable, 10000)
-            
-            return START_STICKY
-        } else {
-            showFloatingBubbleInternal()
-            smartAutomationManager.startSensors()
-        }
-        usageLimitMonitor.startMonitoring()
+        isRunning = true
         return START_STICKY
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "NoxScreen Pro Service",
-                NotificationManager.IMPORTANCE_LOW
-        )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+    private fun handleUnlockRequest() {
+        val config = smartAutomationManager.settings.getConfig()
+        handler.removeCallbacks(resetToBlackRunnable)
+        if (config.isBiometricEnabled) {
+            com.noxscreen.app.security.AuthenticationManager.setAuthenticating()
+            val successIntent = android.app.PendingIntent.getService(
+                this, 2,
+                android.content.Intent(this, BlackScreenService::class.java).apply { action = "AUTH_SUCCESS_UNLOCK" },
+                android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            val authIntent = android.content.Intent(this, BiometricAuthActivity::class.java).apply {
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("EXTRA_SUCCESS_INTENT", successIntent)
+            }
+            startActivity(authIntent)
+        } else {
+            smartAutomationManager.handleManualDismiss()
+            showFloatingBubbleInternal()
         }
     }
 
-    private fun createNotification(): Notification {
-        val stopIntent = Intent(this, BlackScreenService::class.java).apply {
-            action = "STOP_SERVICE"
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel("nox_screen_channel", "NoxScreen", android.app.NotificationManager.IMPORTANCE_LOW)
+            getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
         }
-        val pendingStopIntent = PendingIntent.getService(
-            this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
-        )
+    }
 
-        return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("NoxScreen Pro Active")
-            .setContentText("Tap to stop")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
-            .setContentIntent(pendingStopIntent)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+    private fun createNotification(): android.app.Notification {
+        val pendingIntent = android.app.PendingIntent.getActivity(this, 0, android.content.Intent(this, MainActivity::class.java), android.app.PendingIntent.FLAG_IMMUTABLE)
+        return androidx.core.app.NotificationCompat.Builder(this, "nox_screen_channel")
+            .setContentTitle("NoxScreen Active")
+            .setContentText("Focus mode and smart automation are running")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(pendingIntent)
             .build()
     }
 
-    private var floatingIconView: ImageView? = null
-    private var floatingLayoutParams: WindowManager.LayoutParams? = null
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupFloatingView() {
-        floatingView = FrameLayout(this).apply {
-            val icon = ImageView(this@BlackScreenService).apply {
-                setImageResource(R.drawable.ic_moon)
-                setBackgroundResource(R.drawable.floating_icon_bg)
-                setColorFilter(android.graphics.Color.parseColor("#FFC107"))
-                setPadding(32, 32, 32, 32)
-                elevation = 16f
-            }
-            floatingIconView = icon
-            addView(icon, FrameLayout.LayoutParams(160, 160))
+    private fun updateAodInfo() {
+        if (aodContainer?.visibility == android.view.View.VISIBLE) {
+            val config = smartAutomationManager.settings.getConfig()
+            val sdf = java.text.SimpleDateFormat(if (config.use24HourTime) "HH:mm" else "hh:mm a", java.util.Locale.getDefault())
+            aodClockTextView?.text = sdf.format(java.util.Date())
+            aodDateTextView?.text = java.text.SimpleDateFormat("EEE, MMM dd", java.util.Locale.getDefault()).format(java.util.Date())
         }
+    }
 
-        floatingLayoutParams = WindowManager.LayoutParams(
+    private fun setupFloatingView() {
+        val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
-        )
-        floatingLayoutParams?.gravity = Gravity.TOP or Gravity.START
-        floatingLayoutParams?.x = 0
-        floatingLayoutParams?.y = 100
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = 0
+            y = 100
+        }
+        floatingLayoutParams = params
 
-        val params = floatingLayoutParams!!
+        val frameLayout = FrameLayout(this)
+        floatingView = frameLayout
+
+        val iconView = ImageView(this).apply {
+            setBackgroundResource(R.drawable.floating_icon_bg)
+            val config = smartAutomationManager.settings.getConfig()
+            val size = (150 * config.floatingLockSize).toInt()
+            val padding = (24 * config.floatingLockSize).toInt()
+            layoutParams = FrameLayout.LayoutParams(size, size)
+            setPadding(padding, padding, padding, padding)
+            setImageResource(R.drawable.ic_moon)
+        }
+        floatingIconView = iconView
+        frameLayout.addView(iconView)
 
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
-        var isClick = false
+        var isClick = true
 
-        floatingView?.setOnTouchListener { v, event ->
+        frameLayout.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
@@ -309,142 +318,33 @@ class BlackScreenService : Service() {
                     if (abs(dx) > 10 || abs(dy) > 10) {
                         isClick = false
                     }
-                    
+
                     val metrics = resources.displayMetrics
                     val maxX = metrics.widthPixels - v.width
                     val maxY = metrics.heightPixels - v.height
-                    
+
                     var newX = initialX + dx
                     var newY = initialY + dy
-                    
+
                     if (newX < 0) newX = 0
                     if (newX > maxX) newX = maxX
                     if (newY < 0) newY = 0
                     if (newY > maxY) newY = maxY
-                    
+
                     params.x = newX
                     params.y = newY
-                    
+
                     windowManager.updateViewLayout(floatingView, params)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     if (isClick) {
-                        smartAutomationManager.handleUserActivation()
+                        showBlackoutInternal()
                     }
                     true
                 }
                 else -> false
             }
-        }
-    }
-
-    private fun getBatteryPercentage(): Int {
-        return try {
-            val bm = getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager
-            bm?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
-        } catch (e: Exception) {
-            100
-        }
-    }
-
-    private fun updateAodInfo() {
-        val timeSdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-        val dateSdf = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
-        val now = java.util.Date()
-        
-        val config = smartAutomationManager.settings.getConfig()
-        
-        val themeColor = when (config.aodThemeColor) {
-            "green" -> android.graphics.Color.parseColor("#69F0AE")
-            "blue" -> android.graphics.Color.parseColor("#82B1FF")
-            "yellow" -> android.graphics.Color.parseColor("#FFD54F")
-            "pink" -> android.graphics.Color.parseColor("#FF80AB")
-            else -> android.graphics.Color.WHITE
-        }
-
-        when (config.clockStyle) {
-            "huge" -> {
-                aodClockTextView?.textSize = 110f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-thin", android.graphics.Typeface.NORMAL)
-            }
-            "analog" -> {
-                aodClockTextView?.textSize = 72f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.ITALIC)
-            }
-            "dino" -> {
-                aodClockTextView?.textSize = 60f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
-            }
-            else -> {
-                aodClockTextView?.textSize = 100f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
-            }
-        }
-        
-        if (config.clockStyle == "dino") {
-            aodClockTextView?.text = "🦖\n${timeSdf.format(now)}"
-        } else if (config.clockStyle == "analog") {
-            aodClockTextView?.text = "🕰️\n${timeSdf.format(now)}"
-        } else {
-            aodClockTextView?.text = timeSdf.format(now)
-        }
-        
-        aodDateTextView?.text = dateSdf.format(now)
-        aodDateTextView?.setTextColor(themeColor)
-        
-        aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
-        aodBatteryTextView?.setTextColor(themeColor)
-        
-        if (config.oledBurnInProtection) {
-            val random = java.util.Random()
-            val xOffset = random.nextInt(31) - 15 // -15 to +15 pixels
-            val yOffset = random.nextInt(31) - 15
-            aodContainer?.translationX = xOffset.toFloat()
-            aodContainer?.translationY = yOffset.toFloat()
-        } else {
-            aodContainer?.translationX = 0f
-            aodContainer?.translationY = 0f
-        }
-    }
-
-    private fun getCurrentFormattedTime(): String {
-        val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
-        return sdf.format(java.util.Date())
-    }
-
-
-    private fun handleUnlockRequest() {
-        val config = smartAutomationManager.settings.getConfig()
-        handler.removeCallbacks(resetToBlackRunnable)
-        if (config.isBiometricEnabled) {
-            com.noxscreen.app.security.AuthenticationManager.startAuthentication(
-                onSuccess = {
-                    smartAutomationManager.handleManualDismiss()
-                    showFloatingBubbleInternal()
-                },
-                onFailure = {
-                    blackoutView?.visibility = android.view.View.VISIBLE
-                    isUnlockScreenVisible = false
-                    aodContainer?.visibility = android.view.View.GONE
-                    unlockButton?.visibility = android.view.View.GONE
-                    
-                    showErrorShakeAnimation()
-                    
-                    handler.removeCallbacks(resetToBlackRunnable)
-                    handler.postDelayed(resetToBlackRunnable, 10000)
-                }
-            )
-            val intent = android.content.Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            startActivity(intent)
-        } else {
-            smartAutomationManager.handleManualDismiss()
-            showFloatingBubbleInternal()
         }
     }
 

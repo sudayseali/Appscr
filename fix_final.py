@@ -1,71 +1,14 @@
-import re
-
 with open('app/src/main/java/com/noxscreen/app/BlackScreenService.kt', 'r') as f:
     content = f.read()
 
-# We need to replace from 'override fun onStartCommand' down to 'private var errorLockIcon'
+# We need to replace the broken `createNotificationChannel` with the FULL set of missing functions.
 
-pattern = r"override fun onStartCommand\(.*?private var errorLockIcon: ImageView\? = null"
+broken_block = """    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel("nox_screen_channel", "NoxScreen", android.app.NotificationManager.IMPORTANCE_LOW)
+    private var errorLockIcon: ImageView? = null"""
 
-replacement = """override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "AUTH_SUCCESS_STOP") {
-            stopSelfAndCleanUp()
-            return START_NOT_STICKY
-        }
-        if (intent?.action == "STOP_SERVICE") {
-            if (usageLimitMonitor.isCurrentlyBlocked) {
-                return START_STICKY
-            }
-            val config = smartAutomationManager.settings.getConfig()
-            if (config.isBiometricEnabled) {
-                com.noxscreen.app.security.AuthenticationManager.setAuthenticating()
-                val successIntent = android.app.PendingIntent.getService(
-                    this, 1,
-                    android.content.Intent(this, BlackScreenService::class.java).apply { action = "AUTH_SUCCESS_STOP" },
-                    android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-                val authIntent = android.content.Intent(this, BiometricAuthActivity::class.java).apply {
-                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    putExtra("EXTRA_SUCCESS_INTENT", successIntent)
-                }
-                startActivity(authIntent)
-                return START_STICKY
-            } else {
-                stopSelfAndCleanUp()
-                return START_NOT_STICKY
-            }
-        }
-        if (intent?.action == "AUTH_SUCCESS_UNLOCK") {
-            smartAutomationManager.handleManualDismiss()
-            showFloatingBubbleInternal()
-            return START_STICKY
-        }
-        isRunning = true
-        return START_STICKY
-    }
-
-    private fun handleUnlockRequest() {
-        val config = smartAutomationManager.settings.getConfig()
-        handler.removeCallbacks(resetToBlackRunnable)
-        if (config.isBiometricEnabled) {
-            com.noxscreen.app.security.AuthenticationManager.setAuthenticating()
-            val successIntent = android.app.PendingIntent.getService(
-                this, 2,
-                android.content.Intent(this, BlackScreenService::class.java).apply { action = "AUTH_SUCCESS_UNLOCK" },
-                android.app.PendingIntent.FLAG_IMMUTABLE
-            )
-            val authIntent = android.content.Intent(this, BiometricAuthActivity::class.java).apply {
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("EXTRA_SUCCESS_INTENT", successIntent)
-            }
-            startActivity(authIntent)
-        } else {
-            smartAutomationManager.handleManualDismiss()
-            showFloatingBubbleInternal()
-        }
-    }
-
-    private fun createNotificationChannel() {
+fixed_block = """    private fun createNotificationChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val channel = android.app.NotificationChannel("nox_screen_channel", "NoxScreen", android.app.NotificationManager.IMPORTANCE_LOW)
             getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
@@ -73,7 +16,7 @@ replacement = """override fun onStartCommand(intent: Intent?, flags: Int, startI
     }
 
     private fun createNotification(): android.app.Notification {
-        val pendingIntent = android.app.PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), android.app.PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = android.app.PendingIntent.getActivity(this, 0, android.content.Intent(this, MainActivity::class.java), android.app.PendingIntent.FLAG_IMMUTABLE)
         return androidx.core.app.NotificationCompat.Builder(this, "nox_screen_channel")
             .setContentTitle("NoxScreen Active")
             .setContentText("Focus mode and smart automation are running")
@@ -83,7 +26,7 @@ replacement = """override fun onStartCommand(intent: Intent?, flags: Int, startI
     }
 
     private fun updateAodInfo() {
-        if (aodContainer?.visibility == View.VISIBLE) {
+        if (aodContainer?.visibility == android.view.View.VISIBLE) {
             val config = smartAutomationManager.settings.getConfig()
             val sdf = java.text.SimpleDateFormat(if (config.use24HourTime) "HH:mm" else "hh:mm a", java.util.Locale.getDefault())
             aodClockTextView?.text = sdf.format(java.util.Date())
@@ -121,21 +64,21 @@ replacement = """override fun onStartCommand(intent: Intent?, flags: Int, startI
             if (showUnlockPageImmediately) {
                 isUnlockScreenVisible = true
                 tapCount = 0
-                aodContainer?.visibility = View.GONE
-                unlockButton?.visibility = View.VISIBLE
+                aodContainer?.visibility = android.view.View.GONE
+                unlockButton?.visibility = android.view.View.VISIBLE
             } else {
                 isUnlockScreenVisible = false
                 tapCount = 0
                 val config = smartAutomationManager.settings.getConfig()
-                aodContainer?.visibility = if (config.isAodEnabled) View.VISIBLE else View.GONE
-                unlockButton?.visibility = View.GONE
+                aodContainer?.visibility = if (config.isAodEnabled) android.view.View.VISIBLE else android.view.View.GONE
+                unlockButton?.visibility = android.view.View.GONE
                 updateAodInfo()
             }
         } catch (e: Exception) {
             try {
-                val intent = Intent(this, BlackoutActivity::class.java)
+                val intent = android.content.Intent(this, BlackoutActivity::class.java)
                 intent.putExtra("showUnlockPageImmediately", showUnlockPageImmediately)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 startActivity(intent)
             } catch (e2: Exception) {}
         }
@@ -154,7 +97,7 @@ replacement = """override fun onStartCommand(intent: Intent?, flags: Int, startI
 
     private var errorLockIcon: ImageView? = null"""
 
-content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+content = content.replace(broken_block, fixed_block)
 
 with open('app/src/main/java/com/noxscreen/app/BlackScreenService.kt', 'w') as f:
     f.write(content)

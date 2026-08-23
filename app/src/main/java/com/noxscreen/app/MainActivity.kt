@@ -48,27 +48,26 @@ import com.noxscreen.app.R
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noxscreen.app.ui.theme.MyApplicationTheme
 import com.noxscreen.app.ui.theme.*
 import com.noxscreen.app.automation.AutomationConfig
 
 class MainActivity : ComponentActivity() {
     private lateinit var adsManager: com.noxscreen.app.ads.UnityAdsManager
+    private val authLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            finish()
+        }
+    }
 
 
     override fun onResume() {
         super.onResume()
         if (!com.noxscreen.app.security.AuthenticationManager.isAuthenticated(this)) {
-            com.noxscreen.app.security.AuthenticationManager.startAuthentication(
-                onSuccess = { 
-                    // Nothing to do, onResume will just proceed 
-                },
-                onFailure = { 
-                    finish() 
-                }
-            )
+            com.noxscreen.app.security.AuthenticationManager.setAuthenticating()
             val intent = android.content.Intent(this, BiometricAuthActivity::class.java)
-            startActivity(intent)
+            authLauncher.launch(intent)
         }
     }
 
@@ -158,25 +157,16 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        var isServiceRunning by remember { mutableStateOf(isServiceRunning()) }
-                        
-                        LaunchedEffect(Unit) {
-                            while(true) {
-                                isServiceRunning = isServiceRunning()
-                                kotlinx.coroutines.delay(1000)
-                            }
-                        }
+                        val isServiceRunning by BlackScreenService.isRunningFlow.collectAsStateWithLifecycle(initialValue = BlackScreenService.isRunning)
 
                         ZenithApp(
                             hasPermission = hasPermission,
                             onRequestPermission = { requestOverlayPermission() },
                             onStartService = { 
                                 startBlackScreenService()
-                                isServiceRunning = true
                             },
                             onStopService = {
                                 stopBlackScreenService()
-                                isServiceRunning = false
                                 adsManager.onStopAction(this@MainActivity)
                             },
                             isServiceRunning = isServiceRunning,
@@ -223,16 +213,6 @@ class MainActivity : ComponentActivity() {
                 e.printStackTrace()
             }
         }
-    }
-
-    private fun isServiceRunning(): Boolean {
-        val manager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if (BlackScreenService::class.java.name == service.service.className) {
-                return true
-            }
-        }
-        return false
     }
     
     private fun stopBlackScreenService() {
@@ -811,6 +791,16 @@ SmartTriggerCard(
                     }
                 }
 
+                var liveFloatingLockSize by remember(autoConfig.floatingLockSize) { mutableFloatStateOf(autoConfig.floatingLockSize) }
+
+                LaunchedEffect(liveFloatingLockSize) {
+                    if (liveFloatingLockSize != autoConfig.floatingLockSize) {
+                        kotlinx.coroutines.delay(400)
+                        autoConfig = autoConfig.copy(floatingLockSize = liveFloatingLockSize)
+                        automationSettings.updateConfig(autoConfig)
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -826,7 +816,7 @@ SmartTriggerCard(
                         letterSpacing = 1.5.sp
                     )
                     Text(
-                        text = "${(autoConfig.floatingLockSize * 100).toInt()}%",
+                        text = "${(liveFloatingLockSize * 100).toInt()}%",
                         color = ZenithAccent,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -834,10 +824,15 @@ SmartTriggerCard(
                 }
 
                 Slider(
-                    value = autoConfig.floatingLockSize,
+                    value = liveFloatingLockSize,
                     onValueChange = {
-                        autoConfig = autoConfig.copy(floatingLockSize = it)
-                        automationSettings.updateConfig(autoConfig)
+                        liveFloatingLockSize = it
+                    },
+                    onValueChangeFinished = {
+                        if (autoConfig.floatingLockSize != liveFloatingLockSize) {
+                            autoConfig = autoConfig.copy(floatingLockSize = liveFloatingLockSize)
+                            automationSettings.updateConfig(autoConfig)
+                        }
                     },
                     valueRange = 0.5f..2.0f,
                     colors = SliderDefaults.colors(
