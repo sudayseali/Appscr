@@ -1,21 +1,38 @@
 package com.noxscreen.app.automation
 
+
+import kotlinx.coroutines.launch
+
+import kotlinx.coroutines.Dispatchers
+
+import kotlinx.coroutines.withContext
+
 import android.app.usage.UsageEvents
+
 import android.app.usage.UsageStatsManager
+
 import android.content.Context
+
 import android.content.Intent
+
 import android.media.AudioManager
+
 import android.os.Handler
+
 import android.os.Looper
+
 import android.widget.Toast
+
 import java.util.Calendar
+
 
 class UsageLimitMonitor(
     private val context: Context,
     private val automationSettings: AutomationSettings,
     private val onTriggerBlock: () -> Unit
 ) {
-    private val handler = Handler(Looper.getMainLooper())
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var monitorJob: kotlinx.coroutines.Job? = null
     private var isMonitoring = false
     var isCurrentlyBlocked = false
         private set
@@ -24,24 +41,21 @@ class UsageLimitMonitor(
     private var currentSessionApp = ""
     private var currentSessionStartTime = 0L
 
-    private val monitorRunnable = object : Runnable {
-        override fun run() {
-            checkUsageLimits()
-            if (isMonitoring) {
-                handler.postDelayed(this, 1000) // Check every 1 second
+    fun startMonitoring() {
+        if (isMonitoring) return
+        isMonitoring = true
+        monitorJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            while (isMonitoring) {
+                checkUsageLimits()
+                kotlinx.coroutines.delay(5000) // Check every 5 seconds on IO thread to balance battery and responsiveness
             }
         }
     }
 
-    fun startMonitoring() {
-        if (isMonitoring) return
-        isMonitoring = true
-        handler.post(monitorRunnable)
-    }
-
     fun stopMonitoring() {
         isMonitoring = false
-        handler.removeCallbacks(monitorRunnable)
+        monitorJob?.cancel()
+        monitorJob = null
         isCurrentlyBlocked = false
         hasShownWarning = false
         currentSessionApp = ""
@@ -153,7 +167,9 @@ class UsageLimitMonitor(
         } else if (warningMessage.isNotEmpty()) {
             if (!hasShownWarning) {
                 hasShownWarning = true
-                Toast.makeText(context, warningMessage, Toast.LENGTH_LONG).show()
+                mainHandler.post {
+                    Toast.makeText(context, warningMessage, Toast.LENGTH_LONG).show()
+                }
             }
         } else {
             isCurrentlyBlocked = false
@@ -180,7 +196,7 @@ class UsageLimitMonitor(
             e.printStackTrace()
         }
 
-        handler.postDelayed({
+        mainHandler.postDelayed({
             onTriggerBlock()
         }, 500)
     }

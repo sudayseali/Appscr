@@ -26,6 +26,12 @@ class BiometricAuthActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                handleFailure()
+            }
+        })
+        
         if (AuthenticationManager.getState() != AuthState.AUTHENTICATING) {
             AuthenticationManager.lock()
             finish()
