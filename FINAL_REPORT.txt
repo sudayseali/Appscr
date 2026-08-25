@@ -1,0 +1,61 @@
+1. FILES INSPECTED
+app/src/main/java/com/noxscreen/app/automation/SensorHandler.kt
+app/src/main/java/com/noxscreen/app/automation/PocketDecisionEngine.kt
+app/src/main/java/com/noxscreen/app/BlackScreenService.kt
+app/src/main/java/com/noxscreen/app/automation/SmartAutomationManager.kt
+app/src/main/java/com/noxscreen/app/automation/AutomationSettings.kt
+app/src/main/AndroidManifest.xml
+app/src/test/java/com/noxscreen/app/automation/UsageLimitEvaluatorTest.kt
+
+2. FILES CHANGED
+app/src/main/java/com/noxscreen/app/automation/SensorHandler.kt (added NaN/Infinity validation)
+app/src/main/AndroidManifest.xml (added BOOT_COMPLETED receiver, removed unused WAKE_LOCK)
+app/src/main/java/com/noxscreen/app/BootReceiver.kt (created new file for reboot recovery)
+app/src/main/java/com/noxscreen/app/BlackScreenService.kt (persisted running state for reboot recovery)
+app/src/test/java/com/noxscreen/app/automation/SensorHandlerTest.kt (added JVM unit tests for idempotence and validation)
+DEVICE_TEST_PLAN.md (created new file containing 28 hardware tests)
+
+3. SENSOR HARDENING
+SensorHandler now explicitly rejects NaN and Infinite values from misbehaving physical sensors. Confirmed idempotent register/unregister listener behavior. Null checks are active and safe. Code hardened, DEVICE TEST REQUIRED.
+
+4. OVERLAY HARDENING
+WindowManager addView and removeView calls inside BlackScreenService are structurally safe within try-catch blocks, protecting against BadTokenException. Overlays are appropriately configured for TYPE_APPLICATION_OVERLAY. Code hardened, DEVICE TEST REQUIRED.
+
+5. OEM BATTERY HARDENING
+Confirmed Coroutine Jobs in UsageLimitMonitor are safely cancelled upon service destruction. Eliminated an unused WAKE_LOCK permission from the manifest to prevent automated OEM battery kills triggered by aggressive permission heuristics. Code hardened, DEVICE TEST REQUIRED.
+
+6. REBOOT RECOVERY
+Created `BootReceiver.kt` utilizing `ACTION_BOOT_COMPLETED` and `ACTION_MY_PACKAGE_REPLACED`. BlackScreenService now writes its running state to `SharedPreferences` as it starts and stops. If the system restarts while automation was active, the BootReceiver explicitly restarts the service using the appropriate API. Code hardened, DEVICE TEST REQUIRED.
+
+7. STATE CONSISTENCY
+`SharedPreferences` now securely acts as the authoritative source of truth for reboot recovery without decoupling from the actual active service lifecycle.
+
+8. TESTS ADDED
+`SensorHandlerTest.kt` with tests for:
+- `testStartSensors_RegistersListenersIdempotently`
+- `testStopSensors_UnregistersListeners`
+- `testOnSensorChanged_RejectsNaNValues`
+
+9. TESTS EXECUTED
+JVM unit tests passed via `./gradlew :app:testDebugUnitTest`. (Hardware tests skipped).
+
+10. BUILD RESULT
+PASS (Compilation successful).
+
+11. LINT RESULT
+PASS (No fatal issues).
+
+12. DEVICE STATUS
+DEVICE VERIFICATION = NOT AVAILABLE (`adb devices` returned 0 devices).
+
+13. REMAINING DEVICE TESTS
+28 explicit tests have been defined and documented in `DEVICE_TEST_PLAN.md` within the repository root.
+
+14. REMAINING RISKS
+OEM background task killers (e.g., MIUI, Samsung OneUI). Actual hardware sensor hysteresis and latency variations. System UI/Gesture bar interference on Android 14+.
+
+15. SECURITY IMPACT
+Positive. Removed unnecessary `WAKE_LOCK` permission, minimizing permission surface. Boot receiver safely respects existing user intent and maintains system security boundaries.
+
+16. FINAL VERDICT
+CONDITIONALLY READY — DEVICE VERIFICATION REQUIRED
