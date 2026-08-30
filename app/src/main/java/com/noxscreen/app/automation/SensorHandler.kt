@@ -57,6 +57,9 @@ class SensorHandler(context: Context) : SensorEventListener {
     private var stateTransitionTime = 0L
 
     fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableShake: Boolean = false) {
+        if (com.noxscreen.app.BuildConfig.DEBUG) {
+            android.util.Log.d("SensorHandler", "start(enableProximity=$enableProximity, enableMotion=$enableMotion)")
+        }
         stop()
         this.stationaryDurationMs = stationarySec * 1000L
         this.lastMovementTime = SystemClock.elapsedRealtime()
@@ -67,6 +70,7 @@ class SensorHandler(context: Context) : SensorEventListener {
 
         if (enableProximity) {
             if (proximitySensor != null && !isProximityActive) {
+                NoXScreenDiagnostics.log("Sensor", "Registering Proximity")
                 isProximityActive = sm.registerListener(
                     this,
                     proximitySensor,
@@ -74,6 +78,7 @@ class SensorHandler(context: Context) : SensorEventListener {
                 )
             }
             if (lightSensor != null && !isLightActive) {
+                NoXScreenDiagnostics.log("Sensor", "Registering Light")
                 isLightActive = sm.registerListener(
                     this,
                     lightSensor,
@@ -85,6 +90,7 @@ class SensorHandler(context: Context) : SensorEventListener {
 
         if ((enableProximity || enableMotion || enableShake) && accelerometer != null && !isMotionActive) {
             val delay = if (enableShake) SensorManager.SENSOR_DELAY_UI else SensorManager.SENSOR_DELAY_NORMAL
+            NoXScreenDiagnostics.log("Sensor", "Registering Accelerometer")
             val registered = sm.registerListener(
                 this,
                 accelerometer,
@@ -100,6 +106,9 @@ class SensorHandler(context: Context) : SensorEventListener {
     }
 
     fun stop() {
+        if (com.noxscreen.app.BuildConfig.DEBUG) {
+            android.util.Log.d("SensorHandler", "stop() called. Cleaning up sensors.")
+        }
         sensorManager?.let { sm ->
             if (isProximityActive || isMotionActive || isLightActive) {
                 try {
@@ -146,6 +155,7 @@ class SensorHandler(context: Context) : SensorEventListener {
 
     private fun transitionState(newState: PocketState, delayMs: Long = 0) {
         if (pocketState == newState && delayMs == 0L) return
+        NoXScreenDiagnostics.log("Sensor", "PocketState transitioned to: $newState")
         pocketState = newState
         cancelStateTimer()
 
@@ -207,6 +217,7 @@ class SensorHandler(context: Context) : SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
+        if (event.values.any { it.isNaN() || it.isInfinite() }) return
         when (event.sensor.type) {
             Sensor.TYPE_PROXIMITY -> {
                 val distance = event.values[0]

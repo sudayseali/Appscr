@@ -126,6 +126,8 @@ dependencies {
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
+  testImplementation("org.mockito:mockito-core:4.11.0")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation(libs.robolectric)
   testImplementation(libs.roborazzi)

@@ -1,56 +1,26 @@
-with open("app/src/main/java/com/noxscreen/app/automation/SensorHandler.kt", "r", encoding="utf-8") as f:
+import os
+
+path = "app/src/main/java/com/noxscreen/app/automation/SensorHandler.kt"
+with open(path, "r") as f:
     content = f.read()
 
-target_vars = """    private var enableFaceDown = false
-    private var enableShake = false
-    private var faceDownStartTime = 0L"""
+target1 = """    fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableShake: Boolean = false) {"""
+replacement1 = """    fun start(enableProximity: Boolean, enableMotion: Boolean, stationarySec: Int = 10, enableShake: Boolean = false) {
+        if (com.noxscreen.app.BuildConfig.DEBUG) {
+            android.util.Log.d("SensorHandler", "start(enableProximity=$enableProximity, enableMotion=$enableMotion)")
+        }"""
 
-replacement_vars = """    private var enableFaceDown = false
-    private var enableShake = false
-    private var faceDownStartTime = 0L
-    private var isFaceDownTriggered = false"""
+target2 = """    fun stop() {"""
+replacement2 = """    fun stop() {
+        if (com.noxscreen.app.BuildConfig.DEBUG) {
+            android.util.Log.d("SensorHandler", "stop() called. Cleaning up sensors.")
+        }"""
 
-target_logic = """                if (enableFaceDown) {
-                    val isFaceDownNow = z < -8.0f && abs(x) < 4.0f && abs(y) < 4.0f
-                    if (isFaceDownNow) {
-                        if (faceDownStartTime == 0L) {
-                            faceDownStartTime = System.currentTimeMillis()
-                        } else if (System.currentTimeMillis() - faceDownStartTime > 500L) {
-                            onFaceDownDetected?.invoke()
-                            faceDownStartTime = 0L // Reset
-                        }
-                    } else {
-                        faceDownStartTime = 0L
-                    }
-                }"""
-
-replacement_logic = """                if (enableFaceDown) {
-                    val isFaceDownNow = z < -6.0f && abs(x) < 6.0f && abs(y) < 6.0f
-                    if (isFaceDownNow) {
-                        if (!isFaceDownTriggered) {
-                            if (faceDownStartTime == 0L) {
-                                faceDownStartTime = System.currentTimeMillis()
-                            } else if (System.currentTimeMillis() - faceDownStartTime > 500L) {
-                                onFaceDownDetected?.invoke()
-                                isFaceDownTriggered = true
-                                faceDownStartTime = 0L
-                            }
-                        }
-                    } else {
-                        faceDownStartTime = 0L
-                        isFaceDownTriggered = false
-                    }
-                }"""
-
-if target_vars in content:
-    content = content.replace(target_vars, replacement_vars)
+if target1 in content and target2 in content:
+    content = content.replace(target1, replacement1)
+    content = content.replace(target2, replacement2)
+    with open(path, "w") as f:
+        f.write(content)
+    print("Success")
 else:
-    print("vars target not found")
-
-if target_logic in content:
-    content = content.replace(target_logic, replacement_logic)
-else:
-    print("logic target not found")
-
-with open("app/src/main/java/com/noxscreen/app/automation/SensorHandler.kt", "w", encoding="utf-8") as f:
-    f.write(content)
+    print("Target not found")

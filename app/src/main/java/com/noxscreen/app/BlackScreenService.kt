@@ -184,6 +184,8 @@ class BlackScreenService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val prefs = getSharedPreferences("NoxAutomationPrefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("service_was_running", true).apply()
         if (intent?.action == "AUTH_SUCCESS_STOP") {
             stopSelfAndCleanUp()
             return START_NOT_STICKY
@@ -583,9 +585,17 @@ class BlackScreenService : Service() {
         }
         try {
             if (blackoutView?.parent != null) {
+                com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_REMOVE_STARTED")
                 windowManager.removeView(blackoutView)
+                com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_REMOVE_SUCCESS")
             }
-        } catch (e: Exception) { }
+        } catch (e: android.view.WindowManager.BadTokenException) {
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_REMOVE_FAILED_BAD_TOKEN", e)
+        } catch (e: IllegalArgumentException) {
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_REMOVE_FAILED_ILLEGAL_ARG", e)
+        } catch (e: Exception) { 
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_REMOVE_FAILED", e)
+        }
 
         try {
             if (floatingView?.parent == null) {
@@ -665,7 +675,9 @@ class BlackScreenService : Service() {
                 
                 blackoutView?.systemUiVisibility = uiFlags
 
+                com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_CREATE_STARTED")
                 windowManager.addView(blackoutView, params)
+                com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_CREATE_SUCCESS")
                 
                 blackoutView?.post {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -682,21 +694,36 @@ class BlackScreenService : Service() {
                 blackoutStartTime = System.currentTimeMillis()
                 incrementUsageCount()
             }
+        } catch (e: android.view.WindowManager.BadTokenException) {
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_CREATE_FAILED_BAD_TOKEN", e)
+            fallbackToActivity(showUnlockPageImmediately)
+        } catch (e: SecurityException) {
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_CREATE_FAILED_SECURITY", e)
+            fallbackToActivity(showUnlockPageImmediately)
+        } catch (e: IllegalStateException) {
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_CREATE_FAILED_ILLEGAL_STATE", e)
+            fallbackToActivity(showUnlockPageImmediately)
         } catch (e: Exception) {
-            // Fallback to Activity if overlay is denied by AppOps
-            try {
-                val intent = Intent(this, BlackoutActivity::class.java)
-                intent.putExtra("showUnlockPageImmediately", showUnlockPageImmediately)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(intent)
-            } catch (e2: Exception) {
-                e2.printStackTrace()
-            }
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "OVERLAY_CREATE_FAILED_UNKNOWN", e)
+            fallbackToActivity(showUnlockPageImmediately)
+        }
+    }
+    
+    private fun fallbackToActivity(showUnlockPageImmediately: Boolean) {
+        try {
+            val intent = Intent(this, BlackoutActivity::class.java)
+            intent.putExtra("showUnlockPageImmediately", showUnlockPageImmediately)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+        } catch (e2: Exception) {
+            com.noxscreen.app.automation.NoXScreenDiagnostics.log("Overlay", "FALLBACK_ACTIVITY_FAILED", e2)
         }
     }
 
     override fun onDestroy() {
         isRunning = false
+        val prefs = getSharedPreferences("NoxAutomationPrefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("service_was_running", false).apply()
         updateTile(this)
         super.onDestroy()
         usageLimitMonitor.stopMonitoring()
@@ -709,9 +736,17 @@ class BlackScreenService : Service() {
             blackoutStartTime = 0
         }
         try {
-            if (floatingView?.parent != null) windowManager.removeView(floatingView)
-            if (blackoutView?.parent != null) windowManager.removeView(blackoutView)
+            if (floatingView?.parent != null) {
+                windowManager.removeView(floatingView)
+            }
+            if (blackoutView?.parent != null) {
+                windowManager.removeView(blackoutView)
+            }
+        } catch (e: android.view.WindowManager.BadTokenException) {
+        } catch (e: IllegalArgumentException) {
         } catch (e: Exception) { }
+        floatingView = null
+        blackoutView = null
     }
 
     private fun addTimeSaved(durationInMillis: Long) {
