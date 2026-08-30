@@ -2,16 +2,24 @@ package com.noxscreen.app.automation
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class UsageAnalyticsManager(context: Context) {
+class UsageAnalyticsManager(
+    context: Context,
+    private val ioScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+) {
     private val prefs: SharedPreferences = context.getSharedPreferences("NoxUsageAnalytics", Context.MODE_PRIVATE)
 
     fun recordActivation() {
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val key = "hour_count_$hour"
-        val currentCount = prefs.getInt(key, 0)
-        prefs.edit().putInt(key, currentCount + 1).apply()
+        ioScope.launch {
+            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            val key = "hour_count_$hour"
+            val currentCount = prefs.getInt(key, 0)
+            prefs.edit().putInt(key, currentCount + 1).apply()
+        }
     }
 
     fun getSuggestedAutomation(): String? {

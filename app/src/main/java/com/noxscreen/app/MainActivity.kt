@@ -177,9 +177,9 @@ class MainActivity : ComponentActivity() {
                                     this@MainActivity,
                                     onLoading = onLoading,
                                     onSuccess = {
+                                        com.noxscreen.app.automation.FloatingLockEntitlementManager(this@MainActivity).grantUnlock(styleName)
                                         val currentConfig = com.noxscreen.app.automation.AutomationSettings(this@MainActivity).getConfig()
-                                        val newUnlocked = currentConfig.unlockedStyles + styleName
-                                        val newConfig = currentConfig.copy(floatingLockStyle = styleName, unlockedStyles = newUnlocked)
+                                        val newConfig = currentConfig.copy(floatingLockStyle = styleName)
                                         com.noxscreen.app.automation.AutomationSettings(this@MainActivity).updateConfig(newConfig)
                                         onSuccess()
                                     },

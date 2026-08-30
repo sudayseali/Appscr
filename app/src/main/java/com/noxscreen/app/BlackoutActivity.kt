@@ -37,7 +37,9 @@ class BlackoutActivity : ComponentActivity() {
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             finish()
         } else {
-            val errorIntent = android.content.Intent("SHOW_BIOMETRIC_ERROR")
+            val errorIntent = android.content.Intent("SHOW_BIOMETRIC_ERROR").apply {
+                setPackage(packageName)
+            }
             sendBroadcast(errorIntent)
         }
     }

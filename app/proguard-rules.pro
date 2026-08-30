@@ -16,6 +16,13 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Unity Ads
+-keep class com.unity3d.ads.** { *; }
+-keep interface com.unity3d.ads.** { *; }
+-keep class com.unity3d.services.** { *; }
+-keep interface com.unity3d.services.** { *; }
+
+# Keep app data classes and models
+-keepclassmembers class com.noxscreen.app.automation.AutomationConfig { *; }
+-keepclassmembers class com.noxscreen.app.automation.DiagnosticEntry { *; }
+
