@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">エコ画面オプティマイザ</string>
+    <string name="energy_saved">節約されたエネルギー</string>
+    <string name="screen_off">画面オフ</string>
+    <string name="display_settings">表示設定</string>
+    <string name="always_on_display">常時表示ディスプレイ</string>
+    <string name="oled_pixel_shift">OLEDピクセルシフト</string>
+    <string name="privacy_tint">プライバシーティント</string>
+    <string name="smart_triggers">スマートトリガー</string>
+    <string name="pocket_mode">ポケットモード</string>
+    <string name="sleep_timer">スリープタイマー</string>
+    <string name="floating_action_button">フローティングアクションボタン</string>
+    <string name="floating_lock_style">フローティングロックスタイル</string>
+    <string name="floating_lock_size">フローティングロックサイズ</string>
+    <string name="wake_gesture">ウェイクジェスチャー</string>
+    <string name="security">セキュリティ</string>
+    <string name="enable_biometric">生体認証を有効にする</string>
+    <string name="usage_limits">使用制限</string>
+    <string name="overlay_permission">オーバーレイ権限が必要です</string>
+    <string name="tap_to_grant">タップしてバックグラウンドアクセスを許可します。</string>
+    <string name="start">開始</string>
+    <string name="stop">停止</string>
+</resources>

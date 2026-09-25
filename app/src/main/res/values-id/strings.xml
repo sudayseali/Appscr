@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">PENGOPTIMAL LAYAR ECO</string>
+    <string name="energy_saved">Energi yang Dihemat</string>
+    <string name="screen_off">Layar Mati</string>
+    <string name="display_settings">Pengaturan Tampilan</string>
+    <string name="always_on_display">Layar Selalu Aktif</string>
+    <string name="oled_pixel_shift">Pergeseran Piksel OLED</string>
+    <string name="privacy_tint">Warna Privasi</string>
+    <string name="smart_triggers">Pemicu Pintar</string>
+    <string name="pocket_mode">Mode Saku</string>
+    <string name="sleep_timer">Pengatur Waktu Tidur</string>
+    <string name="floating_action_button">Tombol Aksi Mengambang</string>
+    <string name="floating_lock_style">Gaya Kunci Mengambang</string>
+    <string name="floating_lock_size">Ukuran Kunci Mengambang</string>
+    <string name="wake_gesture">Gestur Bangun</string>
+    <string name="security">Keamanan</string>
+    <string name="enable_biometric">Aktifkan Otentikasi Biometrik</string>
+    <string name="usage_limits">Batas Penggunaan</string>
+    <string name="overlay_permission">Izin Hamparan Diperlukan</string>
+    <string name="tap_to_grant">Ketuk untuk memberikan akses latar belakang.</string>
+    <string name="start">Mulai</string>
+    <string name="stop">Berhenti</string>
+</resources>

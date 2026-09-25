@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">ఎకో స్క్రీన్ ఆప్టిమైజర్</string>
+    <string name="energy_saved">ఆదా అయిన శక్తి</string>
+    <string name="screen_off">స్క్రీన్ ఆఫ్‌లో ఉంది</string>
+    <string name="display_settings">ప్రదర్శన సెట్టింగ్‌లు</string>
+    <string name="always_on_display">ఎల్లప్పుడూ ఆన్‌లో ఉండే ప్రదర్శన</string>
+    <string name="oled_pixel_shift">OLED పిక్సెల్ షిఫ్ట్</string>
+    <string name="privacy_tint">గోప్యతా రంగు</string>
+    <string name="smart_triggers">స్మార్ట్ ట్రిగ్గర్‌లు</string>
+    <string name="pocket_mode">పాకెట్ మోడ్</string>
+    <string name="sleep_timer">స్లీప్ టైమర్</string>
+    <string name="floating_action_button">ఫ్లోటింగ్ యాక్షన్ బటన్</string>
+    <string name="floating_lock_style">ఫ్లోటింగ్ లాక్ శైలి</string>
+    <string name="floating_lock_size">ఫ్లోటింగ్ లాక్ పరిమాణం</string>
+    <string name="wake_gesture">వేక్ సంజ్ఞ</string>
+    <string name="security">భద్రత</string>
+    <string name="enable_biometric">బయోమెట్రిక్ ప్రమాణీకరణను ప్రారంభించండి</string>
+    <string name="usage_limits">వినియోగ పరిమితులు</string>
+    <string name="overlay_permission">ఓవర్‌లే అనుమతి అవసరం</string>
+    <string name="tap_to_grant">నేపథ్య ప్రాప్యతను మంజూరు చేయడానికి నొక్కండి.</string>
+    <string name="start">ప్రారంభించు</string>
+    <string name="stop">ఆపు</string>
+</resources>

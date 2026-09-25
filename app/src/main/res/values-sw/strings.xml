@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">KIBoreshaji Skrini cha ECO</string>
+    <string name="energy_saved">Nishati Iliyohifadhiwa</string>
+    <string name="screen_off">Skrini Imezimwa</string>
+    <string name="display_settings">Mipangilio ya Kuonyesha</string>
+    <string name="always_on_display">Onyesho la Kila Wakati</string>
+    <string name="oled_pixel_shift">Shift ya Pixel ya OLED</string>
+    <string name="privacy_tint">Tint ya Faragha</string>
+    <string name="smart_triggers">Vichochezi Mahiri</string>
+    <string name="pocket_mode">Hali ya Mfukoni</string>
+    <string name="sleep_timer">Kipima Muda cha Kulala</string>
+    <string name="floating_action_button">Kitufe cha Kitendo Kielea</string>
+    <string name="floating_lock_style">Mtindo wa Kufunga Kielea</string>
+    <string name="floating_lock_size">Saizi ya Kufunga Kielea</string>
+    <string name="wake_gesture">Ishara ya Kuamka</string>
+    <string name="security">Usalama</string>
+    <string name="enable_biometric">Washa Uthibitishaji wa Kibayometriki</string>
+    <string name="usage_limits">Mipaka ya Matumizi</string>
+    <string name="overlay_permission">Ruhusa ya Uwekeleaji Inahitajika</string>
+    <string name="tap_to_grant">Gusa ili kutoa ufikiaji wa chinichini.</string>
+    <string name="start">Anza</string>
+    <string name="stop">Simama</string>
+</resources>

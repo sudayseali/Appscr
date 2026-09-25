@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">EKO EKRAN OPTİMİZATÖRÜ</string>
+    <string name="energy_saved">Tasarruf Edilen Enerji</string>
+    <string name="screen_off">Ekran Kapalı</string>
+    <string name="display_settings">Ekran Ayarları</string>
+    <string name="always_on_display">Her Zaman Açık Ekran</string>
+    <string name="oled_pixel_shift">OLED Piksel Kaydırma</string>
+    <string name="privacy_tint">Gizlilik Tonu</string>
+    <string name="smart_triggers">Akıllı Tetikleyiciler</string>
+    <string name="pocket_mode">Cep Modu</string>
+    <string name="sleep_timer">Uyku Zamanlayıcısı</string>
+    <string name="floating_action_button">Kayan İşlem Düğmesi</string>
+    <string name="floating_lock_style">Kayan Kilit Stili</string>
+    <string name="floating_lock_size">Kayan Kilit Boyutu</string>
+    <string name="wake_gesture">Uyandırma Hareketi</string>
+    <string name="security">Güvenlik</string>
+    <string name="enable_biometric">Biyometrik Kimlik Doğrulamayı Etkinleştir</string>
+    <string name="usage_limits">Kullanım Sınırları</string>
+    <string name="overlay_permission">Görünüm Üste Çizme İzni Gerekli</string>
+    <string name="tap_to_grant">Arka plan erişimi vermek için dokunun.</string>
+    <string name="start">Başlat</string>
+    <string name="stop">Durdur</string>
+</resources>

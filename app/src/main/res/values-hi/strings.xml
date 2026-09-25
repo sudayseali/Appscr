@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">इको स्क्रीन ऑप्टिमाइज़र</string>
+    <string name="energy_saved">बचाई गई ऊर्जा</string>
+    <string name="screen_off">स्क्रीन बंद</string>
+    <string name="display_settings">डिस्प्ले सेटिंग्स</string>
+    <string name="always_on_display">ऑलवेज-ऑन डिस्प्ले</string>
+    <string name="oled_pixel_shift">OLED पिक्सेल शिफ्ट</string>
+    <string name="privacy_tint">गोपनीयता टिंट</string>
+    <string name="smart_triggers">स्मार्ट ट्रिगर</string>
+    <string name="pocket_mode">पॉकेट मोड</string>
+    <string name="sleep_timer">स्लीप टाइमर</string>
+    <string name="floating_action_button">फ्लोटिंग एक्शन बटन</string>
+    <string name="floating_lock_style">फ्लोटिंग लॉक स्टाइल</string>
+    <string name="floating_lock_size">फ्लोटिंग लॉक साइज</string>
+    <string name="wake_gesture">वेक जेस्चर</string>
+    <string name="security">सुरक्षा</string>
+    <string name="enable_biometric">बायोमेट्रिक प्रमाणीकरण सक्षम करें</string>
+    <string name="usage_limits">उपयोग सीमाएं</string>
+    <string name="overlay_permission">ओवरले अनुमति आवश्यक है</string>
+    <string name="tap_to_grant">पृष्ठभूमि तक पहुंच प्रदान करने के लिए टैप करें।</string>
+    <string name="start">शुरू</string>
+    <string name="stop">रोकें</string>
+</resources>

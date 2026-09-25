@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoxScreen Pro</string>
+    <string name="eco_screen_optimizer">에코 화면 최적화</string>
+    <string name="energy_saved">절약된 에너지</string>
+    <string name="screen_off">화면 끄기</string>
+    <string name="display_settings">디스플레이 설정</string>
+    <string name="always_on_display">항상 표시 (AOD)</string>
+    <string name="oled_pixel_shift">OLED 픽셀 시프트</string>
+    <string name="privacy_tint">프라이버시 틴트</string>
+    <string name="smart_triggers">스마트 트리거</string>
+    <string name="pocket_mode">포켓 모드</string>
+    <string name="sleep_timer">수면 타이머</string>
+    <string name="floating_action_button">플로팅 액션 버튼</string>
+    <string name="floating_lock_style">플로팅 잠금 스타일</string>
+    <string name="floating_lock_size">플로팅 잠금 크기</string>
+    <string name="wake_gesture">깨우기 제스처</string>
+    <string name="security">보안</string>
+    <string name="enable_biometric">생체 인증 활성화</string>
+    <string name="usage_limits">사용 제한</string>
+    <string name="overlay_permission">오버레이 권한 필요</string>
+    <string name="tap_to_grant">탭하여 백그라운드 액세스 허용.</string>
+    <string name="start">시작</string>
+    <string name="stop">중지</string>
+</resources>
