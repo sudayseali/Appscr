@@ -660,14 +660,19 @@ class BlackScreenService : Service() {
                 unlockButton?.visibility = View.GONE
                 handler.removeCallbacks(resetToBlackRunnable)
 
+                var windowFlags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                        WindowManager.LayoutParams.FLAG_FULLSCREEN
+                if (config.isAntiSpyEnabled) {
+                    windowFlags = windowFlags or WindowManager.LayoutParams.FLAG_SECURE
+                }
+
                 val params = WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
                     WindowManager.LayoutParams.MATCH_PARENT,
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE,
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    windowFlags,
                     PixelFormat.OPAQUE
         ).apply {
                     screenBrightness = 0f

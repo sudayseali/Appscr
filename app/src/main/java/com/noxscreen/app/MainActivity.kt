@@ -85,8 +85,118 @@ class MainActivity : ComponentActivity() {
                         showSplash = false
                     }
                     
+                    val context = LocalContext.current
+                    val appAutomationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
+                    val currentAppConfig = remember { appAutomationSettings.getConfig() }
+                    
+                    var isAppUnlocked by remember { mutableStateOf(!currentAppConfig.isAppLockEnabled) }
+                    var hasTriggeredAppAuth by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(showSplash) {
+                        if (!showSplash && currentAppConfig.isAppLockEnabled && !isAppUnlocked && !hasTriggeredAppAuth) {
+                            hasTriggeredAppAuth = true
+                            val intent = Intent(context, BiometricAuthActivity::class.java).apply {
+                                putExtra("AUTH_TARGET", "APP_LOCK")
+                            }
+                            context.startActivity(intent)
+                        }
+                    }
+
+                    // Dhagayso markii App Lock la furo
+                    DisposableEffect(Unit) {
+                        val receiver = object : android.content.BroadcastReceiver() {
+                            override fun onReceive(c: Context?, intent: Intent?) {
+                                if (intent?.action == "com.noxscreen.app.APP_LOCK_UNLOCKED") {
+                                    isAppUnlocked = true
+                                }
+                            }
+                        }
+                        val filter = android.content.IntentFilter("com.noxscreen.app.APP_LOCK_UNLOCKED")
+                        androidx.core.content.ContextCompat.registerReceiver(
+                            context,
+                            receiver,
+                            filter,
+                            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                        )
+                        onDispose {
+                            try {
+                                context.unregisterReceiver(receiver)
+                            } catch (e: Exception) {}
+                        }
+                    }
+
                     if (showSplash) {
                         SplashScreen()
+                    } else if (currentAppConfig.isAppLockEnabled && !isAppUnlocked) {
+                        // App Lock Screen overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF070B14)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF00E5FF).copy(alpha = 0.15f))
+                                        .border(2.dp, Color(0xFF00E5FF), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Locked",
+                                        tint = Color(0xFF00E5FF),
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text(
+                                    text = "NoxScreen Is Locked",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Authentication required to access app settings",
+                                    color = Color.White.copy(alpha = 0.65f),
+                                    fontSize = 14.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(28.dp))
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(context, BiometricAuthActivity::class.java).apply {
+                                            putExtra("AUTH_TARGET", "APP_LOCK")
+                                        }
+                                        context.startActivity(intent)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.fillMaxWidth(0.7f).height(50.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Fingerprint,
+                                        contentDescription = null,
+                                        tint = Color(0xFF020612),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Unlock App",
+                                        color = Color(0xFF020612),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         var hasPermission by remember { mutableStateOf(checkOverlayPermission()) }
                         var hasRequestedPermissionOnStart by remember { mutableStateOf(false) }
@@ -865,21 +975,95 @@ fun ZenithApp(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val securityManager = remember { com.noxscreen.app.security.AppSecurityManager(context) }
+            val biometricStatus = remember { securityManager.checkBiometricAvailability() }
+            val isBiometricReady = biometricStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE
+
             ExpandableConfigSection(
                 title = stringResource(R.string.security),
-                subtitle = "Protect app access & privacy controls",
+                subtitle = "Biometrics, App Lock & Anti-Spy protection",
                 icon = Icons.Default.Security,
                 iconColor = ZenithCyan,
-                badgeText = "Biometric Off",
-                badgeColor = ZenithCyan,
+                badgeText = if (autoConfig.isBiometricEnabled || autoConfig.isAppLockEnabled) "Shield Active" else "Shield Off",
+                badgeColor = if (autoConfig.isBiometricEnabled || autoConfig.isAppLockEnabled) Color(0xFF00E676) else ZenithCyan,
                 isExpanded = false
             ) {
+                // Hardware status indicator banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isBiometricReady) Color(0xFF00E676).copy(alpha = 0.12f)
+                            else Color(0xFFFFB300).copy(alpha = 0.12f)
+                        )
+                        .border(
+                            1.dp,
+                            if (isBiometricReady) Color(0xFF00E676).copy(alpha = 0.4f)
+                            else Color(0xFFFFB300).copy(alpha = 0.4f),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isBiometricReady) Icons.Default.Fingerprint else Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = if (isBiometricReady) Color(0xFF00E676) else Color(0xFFFFB300),
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = if (isBiometricReady) "Biometric & Device Lock Ready"
+                                       else if (biometricStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.NONE_ENROLLED) "No Fingerprint/PIN Enrolled"
+                                       else "Hardware Not Supported",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = if (isBiometricReady) "Fingerprint, Face unlock and PIN supported"
+                                       else "Set up a screen lock in Android Settings for full security",
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 ZenithSwitchRow(
                     title = stringResource(R.string.enable_biometric),
-                    subtitle = "Use fingerprint or face recognition to access app settings",
+                    subtitle = "Require biometric/PIN to exit blackout and wake screen",
                     checked = autoConfig.isBiometricEnabled
                 ) {
                     autoConfig = autoConfig.copy(isBiometricEnabled = it)
+                    automationSettings.updateConfig(autoConfig)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                ZenithSwitchRow(
+                    title = stringResource(R.string.app_lock),
+                    subtitle = "Require biometric/PIN when opening NoxScreen settings",
+                    checked = autoConfig.isAppLockEnabled
+                ) {
+                    autoConfig = autoConfig.copy(isAppLockEnabled = it)
+                    automationSettings.updateConfig(autoConfig)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                ZenithSwitchRow(
+                    title = stringResource(R.string.anti_spy),
+                    subtitle = "Prevent screenshots & screen recorders from capturing blackout",
+                    checked = autoConfig.isAntiSpyEnabled
+                ) {
+                    autoConfig = autoConfig.copy(isAntiSpyEnabled = it)
                     automationSettings.updateConfig(autoConfig)
                 }
             }

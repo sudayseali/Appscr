@@ -33,7 +33,9 @@ data class AutomationConfig(
     val scheduleEndTimeHour: Int = 7,
     val scheduleEndTimeMinute: Int = 0,
     val unlockScreenStyle: String = "button",
-    val aodThemeColor: String = "white"
+    val aodThemeColor: String = "white",
+    val isAppLockEnabled: Boolean = false,
+    val isAntiSpyEnabled: Boolean = false
 )
 
 class AutomationSettings(private val context: Context) {
@@ -70,7 +72,9 @@ class AutomationSettings(private val context: Context) {
             scheduleEndTimeHour = prefs.getInt("schedule_end_hour", 7),
             scheduleEndTimeMinute = prefs.getInt("schedule_end_minute", 0),
             unlockScreenStyle = prefs.getString("unlock_screen_style", "button") ?: "button",
-            aodThemeColor = prefs.getString("aod_theme_color", "white") ?: "white"
+            aodThemeColor = prefs.getString("aod_theme_color", "white") ?: "white",
+            isAppLockEnabled = prefs.getBoolean("is_app_lock_enabled", false),
+            isAntiSpyEnabled = prefs.getBoolean("is_anti_spy_enabled", false)
         )
     }
 
@@ -106,6 +110,8 @@ class AutomationSettings(private val context: Context) {
             .putInt("schedule_end_minute", config.scheduleEndTimeMinute)
             .putString("unlock_screen_style", config.unlockScreenStyle)
             .putString("aod_theme_color", config.aodThemeColor)
+            .putBoolean("is_app_lock_enabled", config.isAppLockEnabled)
+            .putBoolean("is_anti_spy_enabled", config.isAntiSpyEnabled)
             .apply()
         
         val intent = android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED")

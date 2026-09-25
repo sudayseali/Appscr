@@ -13,8 +13,10 @@
     <string name="floating_lock_style">Floating Lock Style</string>
     <string name="floating_lock_size">Floating Lock Size</string>
     <string name="wake_gesture">Wake Gesture (Taps)</string>
-    <string name="security">Security</string>
-    <string name="enable_biometric">Enable Biometric Authentication</string>
+    <string name="security">Security &amp; Privacy</string>
+    <string name="enable_biometric">Biometric &amp; Device Lock</string>
+    <string name="app_lock">App Lock (Protect NoxScreen)</string>
+    <string name="anti_spy">Anti-Spy (Block Screenshots &amp; Recorders)</string>
     <string name="usage_limits">Usage Limits (Focus Mode)</string>
     <string name="overlay_permission">Overlay Permission Required</string>
     <string name="tap_to_grant">Tap to grant access for background functionality.</string>
