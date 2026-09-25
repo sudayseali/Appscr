@@ -48,15 +48,17 @@ class BiometricAuthActivity : FragmentActivity() {
         }
 
         window.addFlags(
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
         
-        // Transparent window
+        // Pure solid Black - user sees 0% of the mobile until successfully authenticated
         setContent {
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)))
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black))
         }
 
         executor = ContextCompat.getMainExecutor(this)

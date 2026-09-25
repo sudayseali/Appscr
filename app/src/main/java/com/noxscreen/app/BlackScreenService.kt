@@ -474,9 +474,14 @@ class BlackScreenService : Service() {
                         setOnClickListener {
                             handler.removeCallbacks(resetToBlackRunnable)
                             if (config.isBiometricEnabled) {
-                                blackoutView?.visibility = View.GONE
-                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                // Keep blackoutView pure solid black behind biometric dialog
+                                // so user never sees wallpaper, apps or any piece of the phone
+                                aodContainer?.visibility = View.GONE
+                                unlockButton?.visibility = View.GONE
+                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                    putExtra("AUTH_TARGET", "BLACKOUT")
+                                }
                                 startActivity(intent)
                             } else {
                                 smartAutomationManager.handleManualDismiss()
@@ -500,9 +505,13 @@ class BlackScreenService : Service() {
                         setOnClickListener {
                             handler.removeCallbacks(resetToBlackRunnable)
                             if (config.isBiometricEnabled) {
-                                blackoutView?.visibility = View.GONE
-                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                // Keep blackoutView pure solid black behind biometric dialog
+                                aodContainer?.visibility = View.GONE
+                                unlockButton?.visibility = View.GONE
+                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                    putExtra("AUTH_TARGET", "BLACKOUT")
+                                }
                                 startActivity(intent)
                             } else {
                                 smartAutomationManager.handleManualDismiss()

@@ -981,11 +981,11 @@ fun ZenithApp(
 
             ExpandableConfigSection(
                 title = stringResource(R.string.security),
-                subtitle = "Biometrics, App Lock & Anti-Spy protection",
+                subtitle = "Biometric, PIN & Screen Security",
                 icon = Icons.Default.Security,
                 iconColor = ZenithCyan,
-                badgeText = if (autoConfig.isBiometricEnabled || autoConfig.isAppLockEnabled) "Shield Active" else "Shield Off",
-                badgeColor = if (autoConfig.isBiometricEnabled || autoConfig.isAppLockEnabled) Color(0xFF00E676) else ZenithCyan,
+                badgeText = if (autoConfig.isBiometricEnabled) "Active" else "Disabled",
+                badgeColor = if (autoConfig.isBiometricEnabled) Color(0xFF00E676) else ZenithCyan,
                 isExpanded = false
             ) {
                 // Hardware status indicator banner
@@ -1017,16 +1017,16 @@ fun ZenithApp(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = if (isBiometricReady) "Biometric & Device Lock Ready"
+                                text = if (isBiometricReady) "Fingerprint & Device Lock Ready"
                                        else if (biometricStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.NONE_ENROLLED) "No Fingerprint/PIN Enrolled"
-                                       else "Hardware Not Supported",
+                                       else "Device Security Not Configured",
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = if (isBiometricReady) "Fingerprint, Face unlock and PIN supported"
-                                       else "Set up a screen lock in Android Settings for full security",
+                                text = if (isBiometricReady) "Use Fingerprint, Face or Phone PIN/Password to unlock"
+                                       else "Set up fingerprint or screen lock in Android Settings",
                                 color = Color.White.copy(alpha = 0.65f),
                                 fontSize = 11.sp
                             )
@@ -1036,34 +1036,16 @@ fun ZenithApp(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // Single unified security switch
                 ZenithSwitchRow(
-                    title = stringResource(R.string.enable_biometric),
-                    subtitle = "Require biometric/PIN to exit blackout and wake screen",
+                    title = "Screen & App Security Lock",
+                    subtitle = "Require Fingerprint or Phone PIN to unlock screen. Mobile stays completely black until unlocked.",
                     checked = autoConfig.isBiometricEnabled
-                ) {
-                    autoConfig = autoConfig.copy(isBiometricEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                ZenithSwitchRow(
-                    title = stringResource(R.string.app_lock),
-                    subtitle = "Require biometric/PIN when opening NoxScreen settings",
-                    checked = autoConfig.isAppLockEnabled
-                ) {
-                    autoConfig = autoConfig.copy(isAppLockEnabled = it)
-                    automationSettings.updateConfig(autoConfig)
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                ZenithSwitchRow(
-                    title = stringResource(R.string.anti_spy),
-                    subtitle = "Prevent screenshots & screen recorders from capturing blackout",
-                    checked = autoConfig.isAntiSpyEnabled
-                ) {
-                    autoConfig = autoConfig.copy(isAntiSpyEnabled = it)
+                ) { isChecked ->
+                    autoConfig = autoConfig.copy(
+                        isBiometricEnabled = isChecked,
+                        isAntiSpyEnabled = isChecked
+                    )
                     automationSettings.updateConfig(autoConfig)
                 }
             }
