@@ -446,16 +446,7 @@ class BlackScreenService : Service() {
                                 MotionEvent.ACTION_UP -> {
                                     val endY = event.y
                                     if (startY - endY > 100) { // Swiped up
-                                        handler.removeCallbacks(resetToBlackRunnable)
-                                        if (config.isBiometricEnabled) {
-                                            blackoutView?.visibility = View.GONE
-                                            val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java)
-                                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                            startActivity(intent)
-                                        } else {
-                                            smartAutomationManager.handleManualDismiss()
-                                            showFloatingBubbleInternal()
-                                        }
+                                        handleBlackoutUnlock()
                                     }
                                     true
                                 }
@@ -472,21 +463,7 @@ class BlackScreenService : Service() {
                         gravity = Gravity.CENTER
                         
                         setOnClickListener {
-                            handler.removeCallbacks(resetToBlackRunnable)
-                            if (config.isBiometricEnabled) {
-                                // Keep blackoutView pure solid black behind biometric dialog
-                                // so user never sees wallpaper, apps or any piece of the phone
-                                aodContainer?.visibility = View.GONE
-                                unlockButton?.visibility = View.GONE
-                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                    putExtra("AUTH_TARGET", "BLACKOUT")
-                                }
-                                startActivity(intent)
-                            } else {
-                                smartAutomationManager.handleManualDismiss()
-                                showFloatingBubbleInternal()
-                            }
+                            handleBlackoutUnlock()
                         }
                     }
                     else -> { // "button"
@@ -503,20 +480,7 @@ class BlackScreenService : Service() {
                         setPadding(80, 40, 80, 40)
                         
                         setOnClickListener {
-                            handler.removeCallbacks(resetToBlackRunnable)
-                            if (config.isBiometricEnabled) {
-                                // Keep blackoutView pure solid black behind biometric dialog
-                                aodContainer?.visibility = View.GONE
-                                unlockButton?.visibility = View.GONE
-                                val intent = Intent(this@BlackScreenService, BiometricAuthActivity::class.java).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                    putExtra("AUTH_TARGET", "BLACKOUT")
-                                }
-                                startActivity(intent)
-                            } else {
-                                smartAutomationManager.handleManualDismiss()
-                                showFloatingBubbleInternal()
-                            }
+                            handleBlackoutUnlock()
                         }
                     }
                 }
@@ -612,6 +576,43 @@ class BlackScreenService : Service() {
                 windowManager.updateViewLayout(floatingView, floatingLayoutParams)
             }
         } catch (e: Exception) {}
+    }
+
+    private fun handleBlackoutUnlock() {
+        handler.removeCallbacks(resetToBlackRunnable)
+
+        // Always read the live real-time configuration directly from SharedPreferences
+        val currentConfig = smartAutomationManager.settings.getConfig()
+        val securityManager = com.noxscreen.app.security.AppSecurityManager(this)
+        val isBiometricReady = securityManager.checkBiometricAvailability() == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE
+
+        if (currentConfig.isBiometricEnabled) {
+            if (isBiometricReady) {
+                // Keep blackoutView pure solid black behind biometric dialog
+                // so user never sees wallpaper, apps or any piece of the phone until authenticated
+                aodContainer?.visibility = View.GONE
+                unlockButton?.visibility = View.GONE
+                val intent = Intent(this, BiometricAuthActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra("AUTH_TARGET", "BLACKOUT")
+                }
+                startActivity(intent)
+            } else {
+                // Fingerprint/PIN was disabled or removed by user in Android Settings!
+                // Clear the obsolete security config so app doesn't keep stale state
+                smartAutomationManager.settings.updateConfig(currentConfig.copy(isBiometricEnabled = false, isAntiSpyEnabled = false))
+                smartAutomationManager.handleManualDismiss()
+                showFloatingBubbleInternal()
+                android.widget.Toast.makeText(
+                    this,
+                    "Taleefanka lagama helin Fingerprint/PIN. Shaashadda waa la furay.",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        } else {
+            smartAutomationManager.handleManualDismiss()
+            showFloatingBubbleInternal()
+        }
     }
 
     private fun showFloatingBubbleInternal() {

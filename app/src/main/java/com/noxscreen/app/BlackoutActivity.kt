@@ -99,11 +99,20 @@ class BlackoutActivity : ComponentActivity() {
                 BlackoutScreen(onUnlock = { 
                     val settings = com.noxscreen.app.automation.AutomationSettings(this)
                     val isBiometricEnabled = settings.getConfig().isBiometricEnabled
-                    if (isBiometricEnabled) {
-                        val intent = Intent(this, BiometricAuthActivity::class.java)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    val securityManager = com.noxscreen.app.security.AppSecurityManager(this)
+                    val isBiometricReady = securityManager.checkBiometricAvailability() == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE
+
+                    if (isBiometricEnabled && isBiometricReady) {
+                        val intent = Intent(this, BiometricAuthActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            putExtra("AUTH_TARGET", "BLACKOUT")
+                        }
                         startActivity(intent)
                     } else {
+                        if (isBiometricEnabled && !isBiometricReady) {
+                            settings.updateConfig(settings.getConfig().copy(isBiometricEnabled = false, isAntiSpyEnabled = false))
+                            android.widget.Toast.makeText(this, "Taleefanka lagama helin Fingerprint ama PIN. Amniga waa la damiyay.", android.widget.Toast.LENGTH_LONG).show()
+                        }
                         finish() 
                     }
                 })

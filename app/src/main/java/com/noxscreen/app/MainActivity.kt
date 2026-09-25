@@ -976,8 +976,27 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
 
             val securityManager = remember { com.noxscreen.app.security.AppSecurityManager(context) }
-            val biometricStatus = remember { securityManager.checkBiometricAvailability() }
+            var biometricStatus by remember { mutableStateOf(securityManager.checkBiometricAvailability()) }
             val isBiometricReady = biometricStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE
+
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                        val freshStatus = securityManager.checkBiometricAvailability()
+                        biometricStatus = freshStatus
+                        val ready = freshStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE
+                        if (!ready && autoConfig.isBiometricEnabled) {
+                            autoConfig = autoConfig.copy(isBiometricEnabled = false, isAntiSpyEnabled = false)
+                            automationSettings.updateConfig(autoConfig)
+                        }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
 
             ExpandableConfigSection(
                 title = stringResource(R.string.security),
@@ -1003,6 +1022,12 @@ fun ZenithApp(
                             else Color(0xFFFFB300).copy(alpha = 0.4f),
                             RoundedCornerShape(12.dp)
                         )
+                        .clickable(!isBiometricReady) {
+                            try {
+                                val intent = Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (e: Exception) {}
+                        }
                         .padding(12.dp)
                 ) {
                     Row(
@@ -1026,7 +1051,7 @@ fun ZenithApp(
                             )
                             Text(
                                 text = if (isBiometricReady) "Use Fingerprint, Face or Phone PIN/Password to unlock"
-                                       else "Set up fingerprint or screen lock in Android Settings",
+                                       else "Tap here to set up Fingerprint or PIN in Android Settings",
                                 color = Color.White.copy(alpha = 0.65f),
                                 fontSize = 11.sp
                             )
@@ -1042,6 +1067,22 @@ fun ZenithApp(
                     subtitle = "Require Fingerprint or Phone PIN to unlock screen. Mobile stays completely black until unlocked.",
                     checked = autoConfig.isBiometricEnabled
                 ) { isChecked ->
+                    if (isChecked) {
+                        val freshStatus = securityManager.checkBiometricAvailability()
+                        biometricStatus = freshStatus
+                        if (freshStatus != com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Taleefankaaga lagama helin Fingerprint ama PIN. Fadlan marka hore ka samayso Settings-ka taleefanka.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                            try {
+                                val intent = Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (e: Exception) {}
+                            return@ZenithSwitchRow
+                        }
+                    }
                     autoConfig = autoConfig.copy(
                         isBiometricEnabled = isChecked,
                         isAntiSpyEnabled = isChecked

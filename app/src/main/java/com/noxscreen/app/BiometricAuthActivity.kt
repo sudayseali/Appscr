@@ -34,6 +34,34 @@ class BiometricAuthActivity : FragmentActivity() {
         securityManager = AppSecurityManager(this)
         authTarget = intent.getStringExtra("AUTH_TARGET") ?: "BLACKOUT"
 
+        // Hubi haddii taleefanka laga damiyay ama lagala baxay Fingerprint iyo PIN
+        val biometricStatus = securityManager.checkBiometricAvailability()
+        if (biometricStatus != AppSecurityManager.BiometricStatus.AVAILABLE) {
+            val settings = com.noxscreen.app.automation.AutomationSettings(this)
+            val cfg = settings.getConfig()
+            settings.updateConfig(cfg.copy(isBiometricEnabled = false, isAntiSpyEnabled = false))
+            
+            Toast.makeText(
+                this, 
+                "Taleefanka lagama helin Fingerprint ama PIN. Amniga waa la damiyay.", 
+                Toast.LENGTH_LONG
+            ).show()
+
+            isSuccess = true
+            if (authTarget == "BLACKOUT") {
+                val serviceIntent = Intent(this, BlackScreenService::class.java).apply {
+                    action = "BIOMETRIC_SUCCESS"
+                }
+                startService(serviceIntent)
+                sendBroadcast(Intent("com.noxscreen.app.BIOMETRIC_SUCCESS"))
+            } else {
+                sendBroadcast(Intent("com.noxscreen.app.APP_LOCK_UNLOCKED"))
+            }
+            setResult(Activity.RESULT_OK)
+            finish()
+            return
+        }
+
         // Hubi haddii uu jiro lockout firfircoon (isku dayyo khaldan oo badan)
         if (securityManager.isLockedOut()) {
             val remainingSec = securityManager.getRemainingLockoutSeconds()
@@ -66,6 +94,28 @@ class BiometricAuthActivity : FragmentActivity() {
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
+                    if (errorCode == BiometricPrompt.ERROR_NO_BIOMETRICS ||
+                        errorCode == BiometricPrompt.ERROR_HW_NOT_PRESENT ||
+                        errorCode == BiometricPrompt.ERROR_HW_UNAVAILABLE) {
+                        
+                        val settings = com.noxscreen.app.automation.AutomationSettings(this@BiometricAuthActivity)
+                        val cfg = settings.getConfig()
+                        settings.updateConfig(cfg.copy(isBiometricEnabled = false, isAntiSpyEnabled = false))
+
+                        isSuccess = true
+                        if (authTarget == "BLACKOUT") {
+                            val intent = Intent(this@BiometricAuthActivity, BlackScreenService::class.java).apply {
+                                action = "BIOMETRIC_SUCCESS"
+                            }
+                            startService(intent)
+                            sendBroadcast(Intent("com.noxscreen.app.BIOMETRIC_SUCCESS"))
+                        } else {
+                            sendBroadcast(Intent("com.noxscreen.app.APP_LOCK_UNLOCKED"))
+                        }
+                        setResult(Activity.RESULT_OK)
+                        finish()
+                        return
+                    }
                     setResult(Activity.RESULT_CANCELED)
                     finish()
                 }
