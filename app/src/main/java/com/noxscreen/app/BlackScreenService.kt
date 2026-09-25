@@ -559,15 +559,23 @@ class BlackScreenService : Service() {
     }
 
     private fun updateFloatingBubbleStyle() {
+        val entitlementManager = com.noxscreen.app.automation.FloatingLockEntitlementManager(this)
         val config = smartAutomationManager.settings.getConfig()
         val size = (150 * config.floatingLockSize).toInt()
         val padding = (24 * config.floatingLockSize).toInt()
+        
+        // Ensure that if the selected style expired, fallback to "lock"
+        val activeStyle = if (entitlementManager.isStyleUnlocked(config.floatingLockStyle)) {
+            config.floatingLockStyle
+        } else {
+            "lock"
+        }
         
         floatingIconView?.apply {
             layoutParams = FrameLayout.LayoutParams(size, size)
             setPadding(padding, padding, padding, padding)
             
-            val iconRes = when (config.floatingLockStyle) {
+            val iconRes = when (activeStyle) {
                 "lock" -> R.drawable.ic_lock
                 "moon" -> R.drawable.ic_moon
                 "circle" -> R.drawable.ic_circle

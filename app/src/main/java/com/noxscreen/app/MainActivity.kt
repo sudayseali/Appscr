@@ -147,9 +147,10 @@ class MainActivity : ComponentActivity() {
                                     this@MainActivity,
                                     onLoading = onLoading,
                                     onSuccess = {
+                                        val entitlementManager = com.noxscreen.app.automation.FloatingLockEntitlementManager(this@MainActivity)
+                                        entitlementManager.unlockStyleFor7Days(styleName)
                                         val currentConfig = com.noxscreen.app.automation.AutomationSettings(this@MainActivity).getConfig()
-                                        val newUnlocked = currentConfig.unlockedStyles + styleName
-                                        val newConfig = currentConfig.copy(floatingLockStyle = styleName, unlockedStyles = newUnlocked)
+                                        val newConfig = currentConfig.copy(floatingLockStyle = styleName)
                                         com.noxscreen.app.automation.AutomationSettings(this@MainActivity).updateConfig(newConfig)
                                         onSuccess()
                                     },
@@ -239,7 +240,14 @@ fun ZenithApp(
     onUnlockPremiumStyle: (String, () -> Unit, () -> Unit, (String) -> Unit) -> (() -> Unit)?
 ) {
     val context = LocalContext.current
+    val entitlementManager = remember { com.noxscreen.app.automation.FloatingLockEntitlementManager(context) }
     val automationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
+    
+    // Sync active 7-day unlocks at launch
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        entitlementManager.syncWithAutomationSettings()
+    }
+    
     var autoConfig by remember { mutableStateOf(automationSettings.getConfig()) }
     val scrollState = rememberScrollState()
     
@@ -687,69 +695,102 @@ fun ZenithApp(
                 ) {
                     items(styles.size) { index ->
                         val (styleName, painter) = styles[index]
-                        val isUnlocked = autoConfig.unlockedStyles.contains(styleName)
+                        val isUnlocked = entitlementManager.isStyleUnlocked(styleName)
+                        val isFree = com.noxscreen.app.automation.FloatingLockEntitlementManager.PERMANENT_FREE_STYLES.contains(styleName)
+                        val remainingTimeText = if (isUnlocked && !isFree) entitlementManager.getRemainingTimeFormatted(styleName) else null
                         val context = androidx.compose.ui.platform.LocalContext.current
                         val isSelected = autoConfig.floatingLockStyle == styleName
-                        Box(
-                            modifier = Modifier
-                                .size(58.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(
-                                    if (isSelected) Color(0xFF00E676).copy(alpha = 0.22f) else Color(0xFF0F172A)
+                        
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(58.dp)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(
+                                        if (isSelected) Color(0xFF00E676).copy(alpha = 0.22f) else Color(0xFF0F172A)
+                                    )
+                                    .border(
+                                        if (isSelected) 2.dp else 1.dp,
+                                        if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
+                                        RoundedCornerShape(18.dp)
+                                    )
+                                    .clickable {
+                                        if (isUnlocked) {
+                                            autoConfig = autoConfig.copy(floatingLockStyle = styleName)
+                                            automationSettings.updateConfig(autoConfig)
+                                        } else {
+                                            cancelAdLoad = onUnlockPremiumStyle(
+                                                styleName,
+                                                { showAdLoading = true },
+                                                {
+                                                    showAdLoading = false
+                                                    autoConfig = automationSettings.getConfig()
+                                                },
+                                                { errorMsg ->
+                                                    showAdLoading = false
+                                                    android.widget.Toast.makeText(
+                                                        context,
+                                                        errorMsg,
+                                                        android.widget.Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
+                                            )
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painter,
+                                    contentDescription = null,
+                                    tint = if (isSelected) Color(0xFF00E676) else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
+                                    modifier = Modifier.size(26.dp)
                                 )
-                                .border(
-                                    if (isSelected) 2.dp else 1.dp,
-                                    if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B),
-                                    RoundedCornerShape(18.dp)
-                                )
-                                .clickable {
-                                    if (isUnlocked) {
-                                        autoConfig = autoConfig.copy(floatingLockStyle = styleName)
-                                        automationSettings.updateConfig(autoConfig)
-                                    } else {
-                                        cancelAdLoad = onUnlockPremiumStyle(
-                                            styleName,
-                                            { showAdLoading = true },
-                                            {
-                                                showAdLoading = false
-                                                autoConfig = automationSettings.getConfig()
-                                            },
-                                            { errorMsg ->
-                                                showAdLoading = false
-                                                android.widget.Toast.makeText(
-                                                    context,
-                                                    errorMsg,
-                                                    android.widget.Toast.LENGTH_LONG
-                                                ).show()
-                                            }
+                                if (!isUnlocked) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(4.dp)
+                                            .size(16.dp)
+                                            .background(Color(0xFF0F172A), CircleShape)
+                                            .border(1.dp, Color(0xFFFFB300), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "Locked",
+                                            tint = Color(0xFFFFB300),
+                                            modifier = Modifier.size(10.dp)
                                         )
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painter,
-                                contentDescription = null,
-                                tint = if (isSelected) Color(0xFF00E676) else if (isUnlocked) Color.White else Color.White.copy(alpha = 0.35f),
-                                modifier = Modifier.size(26.dp)
-                            )
-                            if (!isUnlocked) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(4.dp)
-                                        .size(16.dp)
-                                        .background(Color(0xFF0F172A), CircleShape)
-                                        .border(1.dp, Color(0xFFFFB300), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "Locked",
-                                        tint = Color(0xFFFFB300),
-                                        modifier = Modifier.size(10.dp)
-                                    )
+                                } else if (!isFree) {
+                                    // 7d active badge
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(3.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(Color(0xFF00E5FF).copy(alpha = 0.25f))
+                                            .padding(horizontal = 3.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "7d",
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF00E5FF)
+                                        )
+                                    }
                                 }
+                            }
+                            if (remainingTimeText != null) {
+                                Text(
+                                    text = remainingTimeText,
+                                    fontSize = 9.sp,
+                                    color = Color(0xFF00E5FF),
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
                             }
                         }
                     }
