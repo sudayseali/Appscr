@@ -30,15 +30,50 @@ class AppSecurityManager(private val context: Context) {
     }
 
     /**
-     * Hubi in qalabku leeyahay Biometric diyaar ah.
+     * Returns the valid BiometricManager authenticator bitmask for the current Android API level.
+     * On API 24-29 (Android 7-10), BIOMETRIC_STRONG | DEVICE_CREDENTIAL is rejected by AndroidX Biometric 1.1.0,
+     * whereas BIOMETRIC_WEAK | DEVICE_CREDENTIAL is supported across API 24-36 and also supports Class 2 Face/Fingerprint.
+     */
+    fun getSupportedAuthenticators(): Int {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            Authenticators.BIOMETRIC_STRONG or Authenticators.BIOMETRIC_WEAK or Authenticators.DEVICE_CREDENTIAL
+        } else {
+            Authenticators.BIOMETRIC_WEAK or Authenticators.DEVICE_CREDENTIAL
+        }
+    }
+
+    /**
+     * Hubi in qalabku leeyahay Biometric ama Device Credential (PIN/Pattern/Password) diyaar ah.
      */
     fun checkBiometricAvailability(): BiometricStatus {
         val biometricManager = BiometricManager.from(context)
-        return when (biometricManager.canAuthenticate(Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL)) {
+        val status = biometricManager.canAuthenticate(getSupportedAuthenticators())
+        return when (status) {
             BiometricManager.BIOMETRIC_SUCCESS -> BiometricStatus.AVAILABLE
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> BiometricStatus.NONE_ENROLLED
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> BiometricStatus.NOT_SUPPORTED
-            else -> BiometricStatus.HARDWARE_UNAVAILABLE
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+                if (keyguardManager?.isDeviceSecure == true) {
+                    BiometricStatus.AVAILABLE
+                } else {
+                    BiometricStatus.NONE_ENROLLED
+                }
+            }
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+                if (keyguardManager?.isDeviceSecure == true) {
+                    BiometricStatus.AVAILABLE
+                } else {
+                    BiometricStatus.NOT_SUPPORTED
+                }
+            }
+            else -> {
+                val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+                if (keyguardManager?.isDeviceSecure == true) {
+                    BiometricStatus.AVAILABLE
+                } else {
+                    BiometricStatus.HARDWARE_UNAVAILABLE
+                }
+            }
         }
     }
 

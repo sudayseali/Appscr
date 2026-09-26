@@ -28,4 +28,15 @@
     <string name="shake_to_wake">Rux si uu u tooso (Shake to Wake)</string>
 
     <string name="skip_unlock_screen">Toos u fur shaashada (Skip Unlock)</string>
+
+    <string name="background_protection">Ilaalinta Adeegga Gadaal</string>
+    <string name="background_protection_subtitle">Ka ilaali Samsung, Xiaomi &amp; Tecno inay xiraan Floating Service-ka</string>
+    <string name="battery_unrestricted_badge">Active / Unrestricted</string>
+    <string name="battery_optimized_badge">Optimized</string>
+    <string name="battery_status_unrestricted_title">Active / Unrestricted (Waa Daaran Yahay)</string>
+    <string name="battery_status_unrestricted_desc">Adeegga Shaashadda Madow iyo Floating Lock waa laga ilaaliyey inay iskeed u damiyaan.</string>
+    <string name="battery_status_optimized_title">Optimized (Wuu Dami Karaa Gadaal)</string>
+    <string name="battery_status_optimized_desc">Ka dhig NoxScreen Unrestricted ama Don\'t Optimize si Samsung, Xiaomi, ama Tecno uusan u xirin Floating Service-ka.</string>
+    <string name="allow_background_run">Allow Background Run</string>
+    <string name="open_app_battery_info">App Battery Info (Samsung / Xiaomi / Tecno)</string>
 </resources>

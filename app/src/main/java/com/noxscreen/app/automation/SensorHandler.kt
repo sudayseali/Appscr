@@ -33,6 +33,10 @@ class SensorHandler(context: Context) : SensorEventListener {
     private val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     private val lightSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LIGHT)
 
+    fun hasProximitySensor(): Boolean = proximitySensor != null
+    fun hasAccelerometerSensor(): Boolean = accelerometer != null
+    fun hasLightSensor(): Boolean = lightSensor != null
+
     var onProximityChanged: ((isNear: Boolean) -> Unit)? = null
     var onStationaryDetected: (() -> Unit)? = null
     var onMotionDetected: (() -> Unit)? = null

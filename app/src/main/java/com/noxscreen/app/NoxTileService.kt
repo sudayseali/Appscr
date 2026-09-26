@@ -28,16 +28,54 @@ class NoxTileService : TileService() {
         }
         
         if (isRunning) {
-            val intent = Intent(this, BlackScreenService::class.java).apply {
-                action = "STOP_SERVICE"
-            }
-            startService(intent)
-        } else {
-            val intent = Intent(this, BlackScreenService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
+            try {
+                val intent = Intent(this, BlackScreenService::class.java).apply {
+                    action = "STOP_SERVICE"
+                }
                 startService(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
+                tile?.let {
+                    it.state = Tile.STATE_INACTIVE
+                    it.label = "Start NoxScreen"
+                    it.updateTile()
+                }
+                try {
+                    val mainIntent = Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        val pendingIntent = android.app.PendingIntent.getActivity(
+                            this, 0, mainIntent,
+                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                        startActivityAndCollapse(pendingIntent)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        startActivityAndCollapse(mainIntent)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                return
+            }
+
+            try {
+                val intent = Intent(this, BlackScreenService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+            } catch (e: Exception) {
+                tile?.let {
+                    it.state = Tile.STATE_INACTIVE
+                    it.label = "Start NoxScreen"
+                    it.updateTile()
+                }
             }
         }
     }

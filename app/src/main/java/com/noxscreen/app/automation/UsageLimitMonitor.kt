@@ -13,6 +13,7 @@ import java.util.Calendar
 class UsageLimitMonitor(
     private val context: Context,
     private val automationSettings: AutomationSettings,
+    private val isOverlayCurrentlyActive: () -> Boolean = { false },
     private val onTriggerBlock: () -> Unit
 ) {
     private val handler = Handler(Looper.getMainLooper())
@@ -22,20 +23,44 @@ class UsageLimitMonitor(
     
     private var currentSessionApp = ""
     private var currentSessionStartTime = 0L
+    private var lastQueryEndTime = 0L
+    private var lastKnownForegroundApp = ""
     private val appUsageTimes = mutableMapOf<String, Long>()
 
     private val monitorRunnable = object : Runnable {
         override fun run() {
+            if (!shouldRunMonitoring()) {
+                stopMonitoring()
+                return
+            }
             checkUsageLimits()
             if (isMonitoring) {
-                handler.postDelayed(this, 1000) // Check every 1 second
+                handler.postDelayed(this, 1000) // Check every 1 second only when Focus Mode is active
             }
         }
     }
 
+    fun shouldRunMonitoring(): Boolean {
+        val config = automationSettings.getConfig()
+        return (config.isUsageLimitsEnabled || config.isScheduleEnabled) && config.blockedApps.isNotEmpty()
+    }
+
+    fun syncWithConfig() {
+        if (shouldRunMonitoring()) {
+            startMonitoring()
+        } else {
+            stopMonitoring()
+        }
+    }
+
     fun startMonitoring() {
+        if (!shouldRunMonitoring()) {
+            stopMonitoring()
+            return
+        }
         if (isMonitoring) return
         isMonitoring = true
+        lastQueryEndTime = 0L
         handler.post(monitorRunnable)
     }
 
@@ -46,24 +71,42 @@ class UsageLimitMonitor(
         hasShownWarning = false
         currentSessionApp = ""
         currentSessionStartTime = 0L
+        lastQueryEndTime = 0L
+        lastKnownForegroundApp = ""
         appUsageTimes.clear()
     }
 
     private fun checkUsageLimits() {
         val config = automationSettings.getConfig()
         
-        if (!config.isUsageLimitsEnabled && !config.isScheduleEnabled || config.blockedApps.isEmpty()) {
+        if ((!config.isUsageLimitsEnabled && !config.isScheduleEnabled) || config.blockedApps.isEmpty()) {
             isCurrentlyBlocked = false
+            return
+        }
+
+        // If blackout overlay is already covering the screen, avoid repeated queries and block triggers
+        if (isOverlayCurrentlyActive()) {
             return
         }
 
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return
         
         val endTime = System.currentTimeMillis()
-        val startTime = endTime - 1000 * 60 * 60 // Look back 1 hour
-        val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
+        // Query a 15-second delta window after initial 1-hour bootstrap to minimize Binder IPC & GC
+        val startTime = if (lastQueryEndTime > 0L && (endTime - lastQueryEndTime) < 60_000L) {
+            (lastQueryEndTime - 2_000L).coerceAtLeast(endTime - 15_000L)
+        } else {
+            endTime - 1000L * 60L * 60L
+        }
+        lastQueryEndTime = endTime
+
+        val usageEvents = try {
+            usageStatsManager.queryEvents(startTime, endTime)
+        } catch (e: Exception) {
+            return
+        }
         
-        var foregroundApp = ""
+        var foregroundApp = lastKnownForegroundApp
         val event = UsageEvents.Event()
         while (usageEvents.hasNextEvent()) {
             usageEvents.getNextEvent(event)
@@ -75,6 +118,7 @@ class UsageLimitMonitor(
                 }
             }
         }
+        lastKnownForegroundApp = foregroundApp
 
         if (foregroundApp.isEmpty() || !config.blockedApps.contains(foregroundApp)) {
             if (currentSessionApp.isNotEmpty() && currentSessionStartTime > 0) {
@@ -155,30 +199,34 @@ class UsageLimitMonitor(
     }
 
     private fun triggerBlockAction() {
-        // A. Remove focus (go to home screen)
-        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        context.startActivity(homeIntent)
+        // A. Display Control (Overlay/Dim/Lock) first so TYPE_APPLICATION_OVERLAY is visible on Android 15+
+        onTriggerBlock()
 
         // B. Stop audio
         try {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                val focusRequest = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE).build()
-                audioManager.requestAudioFocus(focusRequest)
-            } else {
-                @Suppress("DEPRECATION")
-                audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            if (audioManager != null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    val focusRequest = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE).build()
+                    audioManager.requestAudioFocus(focusRequest)
+                } else {
+                    @Suppress("DEPRECATION")
+                    audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        // C. Display Control (Overlay/Dim/Lock)
-        handler.postDelayed({
-            onTriggerBlock()
-        }, 500)
+        // C. Remove focus from blocked app (go to home screen safely)
+        try {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(homeIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -297,13 +298,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun isServiceRunning(): Boolean {
-        val manager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if (BlackScreenService::class.java.name == service.service.className) {
-                return true
-            }
+        if (BlackScreenService.isRunning) return true
+        return try {
+            val manager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            @Suppress("DEPRECATION")
+            manager?.getRunningServices(50)?.any {
+                BlackScreenService::class.java.name == it.service.className
+            } == true
+        } catch (e: Exception) {
+            false
         }
-        return false
     }
     
     private fun stopBlackScreenService() {
@@ -720,6 +724,8 @@ fun ZenithApp(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val sensorHandler = remember { com.noxscreen.app.automation.SensorHandler(context) }
+
             ExpandableConfigSection(
                 title = stringResource(R.string.smart_triggers),
                 subtitle = "Auto actions based on motion sensors",
@@ -735,9 +741,17 @@ fun ZenithApp(
                     icon = Icons.Default.Smartphone,
                     iconTint = Color(0xFF00E676),
                     checked = autoConfig.isPocketModeEnabled,
-                    onCheckedChange = {
-                        autoConfig = autoConfig.copy(isPocketModeEnabled = it)
-                        automationSettings.updateConfig(autoConfig)
+                    onCheckedChange = { enabled ->
+                        if (enabled && !sensorHandler.hasProximitySensor()) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Proximity sensor not available on this device.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            autoConfig = autoConfig.copy(isPocketModeEnabled = enabled)
+                            automationSettings.updateConfig(autoConfig)
+                        }
                     }
                 ) {
                     PocketModeWaveGraphic()
@@ -749,9 +763,17 @@ fun ZenithApp(
                     icon = Icons.Default.Vibration,
                     iconTint = Color(0xFF00E5FF),
                     checked = autoConfig.isShakeToWakeEnabled,
-                    onCheckedChange = {
-                        autoConfig = autoConfig.copy(isShakeToWakeEnabled = it)
-                        automationSettings.updateConfig(autoConfig)
+                    onCheckedChange = { enabled ->
+                        if (enabled && !sensorHandler.hasAccelerometerSensor()) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Accelerometer sensor not available on this device.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            autoConfig = autoConfig.copy(isShakeToWakeEnabled = enabled)
+                            automationSettings.updateConfig(autoConfig)
+                        }
                     }
                 ) {
                     ShakeToWakeGraphic()
@@ -1243,6 +1265,57 @@ fun ZenithApp(
                     }
 
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val batteryLifecycleOwner = LocalLifecycleOwner.current
+            var isIgnoringBatteryOptimizations by remember {
+                mutableStateOf(isBatteryOptimizationIgnored(context))
+            }
+
+            DisposableEffect(batteryLifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        isIgnoringBatteryOptimizations = isBatteryOptimizationIgnored(context)
+                    }
+                }
+                batteryLifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    batteryLifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
+            ExpandableConfigSection(
+                title = stringResource(R.string.background_protection),
+                subtitle = stringResource(R.string.background_protection_subtitle),
+                icon = Icons.Default.BatteryChargingFull,
+                iconColor = if (isIgnoringBatteryOptimizations) Color(0xFF00E676) else Color(0xFFFFB300),
+                badgeText = if (isIgnoringBatteryOptimizations) {
+                    stringResource(R.string.battery_unrestricted_badge)
+                } else {
+                    stringResource(R.string.battery_optimized_badge)
+                },
+                badgeColor = if (isIgnoringBatteryOptimizations) Color(0xFF00E676) else Color(0xFFFFB300),
+                isExpanded = false
+            ) {
+                BatteryOptimizationCard(
+                    isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExpandableConfigSection(
+                title = stringResource(R.string.support),
+                subtitle = stringResource(R.string.support_subtitle),
+                icon = Icons.Default.SupportAgent,
+                iconColor = ZenithAccent,
+                badgeText = com.noxscreen.app.support.SupportHelper.WHATSAPP_ACCOUNT_NAME,
+                badgeColor = ZenithAccent,
+                isExpanded = false
+            ) {
+                WhatsAppSupportCard()
             }
         }
         // Bottom Banner Ad
@@ -2712,3 +2785,276 @@ fun SkipUnlockGraphic() {
         }
     }
 }
+
+@Composable
+fun WhatsAppSupportCard() {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1322)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1B2C46))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(ZenithAccent.copy(alpha = 0.18f), CircleShape)
+                        .border(1.dp, ZenithAccent.copy(alpha = 0.40f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_whatsapp),
+                        contentDescription = stringResource(R.string.whatsapp_support),
+                        tint = ZenithAccent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.whatsapp_support),
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = com.noxscreen.app.support.SupportHelper.WHATSAPP_ACCOUNT_NAME,
+                            color = ZenithAccent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = stringResource(R.string.whatsapp_support_prompt),
+                        color = ZenithTextMuted,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { com.noxscreen.app.support.SupportHelper.openWhatsAppSupport(context) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ZenithAccent.copy(alpha = 0.16f),
+                    contentColor = ZenithAccent
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, ZenithAccent.copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("whatsapp_support_button")
+            ) {
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.ic_whatsapp),
+                    contentDescription = stringResource(R.string.whatsapp),
+                    tint = ZenithAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.whatsapp),
+                    color = ZenithAccent,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+fun isBatteryOptimizationIgnored(context: Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        pm?.isIgnoringBatteryOptimizations(context.packageName) == true
+    } else {
+        true
+    }
+}
+
+fun openBatteryOptimizationSettings(context: Context) {
+    try {
+        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        openAppBatteryDetailsSettings(context)
+    }
+}
+
+fun openAppBatteryDetailsSettings(context: Context) {
+    try {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null)
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        try {
+            val fallback = Intent(Settings.ACTION_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(fallback)
+        } catch (_: Exception) {}
+    }
+}
+
+@Composable
+fun BatteryOptimizationCard(isIgnoringBatteryOptimizations: Boolean) {
+    val context = LocalContext.current
+    val statusColor = if (isIgnoringBatteryOptimizations) Color(0xFF00E676) else Color(0xFFFFB300)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1322)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1B2C46))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(statusColor.copy(alpha = 0.18f), CircleShape)
+                        .border(1.dp, statusColor.copy(alpha = 0.40f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isIgnoringBatteryOptimizations) {
+                            Icons.Default.VerifiedUser
+                        } else {
+                            Icons.Default.BatteryAlert
+                        },
+                        contentDescription = stringResource(R.string.background_protection),
+                        tint = statusColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isIgnoringBatteryOptimizations) {
+                            stringResource(R.string.battery_status_unrestricted_title)
+                        } else {
+                            stringResource(R.string.battery_status_optimized_title)
+                        },
+                        color = if (isIgnoringBatteryOptimizations) Color(0xFF00E676) else Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = if (isIgnoringBatteryOptimizations) {
+                            stringResource(R.string.battery_status_unrestricted_desc)
+                        } else {
+                            stringResource(R.string.battery_status_optimized_desc)
+                        },
+                        color = ZenithTextMuted,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
+            if (!isIgnoringBatteryOptimizations) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = { openBatteryOptimizationSettings(context) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ZenithAccent.copy(alpha = 0.16f),
+                        contentColor = ZenithAccent
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ZenithAccent.copy(alpha = 0.45f)),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .testTag("allow_background_run_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BatteryChargingFull,
+                        contentDescription = stringResource(R.string.allow_background_run),
+                        tint = ZenithAccent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.allow_background_run),
+                        color = ZenithAccent,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = { openAppBatteryDetailsSettings(context) },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = ZenithSecondary
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ZenithSecondary.copy(alpha = 0.35f)),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .testTag("open_app_battery_info_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.open_app_battery_info),
+                        tint = ZenithSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.open_app_battery_info),
+                        color = ZenithSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+

@@ -53,9 +53,9 @@ class BiometricAuthActivity : FragmentActivity() {
                     action = "BIOMETRIC_SUCCESS"
                 }
                 startService(serviceIntent)
-                sendBroadcast(Intent("com.noxscreen.app.BIOMETRIC_SUCCESS"))
+                sendBroadcast(Intent("com.noxscreen.app.BIOMETRIC_SUCCESS").setPackage(packageName))
             } else {
-                sendBroadcast(Intent("com.noxscreen.app.APP_LOCK_UNLOCKED"))
+                sendBroadcast(Intent("com.noxscreen.app.APP_LOCK_UNLOCKED").setPackage(packageName))
             }
             setResult(Activity.RESULT_OK)
             finish()
@@ -95,6 +95,7 @@ class BiometricAuthActivity : FragmentActivity() {
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
                     if (errorCode == BiometricPrompt.ERROR_NO_BIOMETRICS ||
+                        errorCode == BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL ||
                         errorCode == BiometricPrompt.ERROR_HW_NOT_PRESENT ||
                         errorCode == BiometricPrompt.ERROR_HW_UNAVAILABLE) {
                         
@@ -108,9 +109,9 @@ class BiometricAuthActivity : FragmentActivity() {
                                 action = "BIOMETRIC_SUCCESS"
                             }
                             startService(intent)
-                            sendBroadcast(Intent("com.noxscreen.app.BIOMETRIC_SUCCESS"))
+                            sendBroadcast(Intent("com.noxscreen.app.BIOMETRIC_SUCCESS").setPackage(packageName))
                         } else {
-                            sendBroadcast(Intent("com.noxscreen.app.APP_LOCK_UNLOCKED"))
+                            sendBroadcast(Intent("com.noxscreen.app.APP_LOCK_UNLOCKED").setPackage(packageName))
                         }
                         setResult(Activity.RESULT_OK)
                         finish()
@@ -132,10 +133,10 @@ class BiometricAuthActivity : FragmentActivity() {
                         }
                         startService(intent)
                         
-                        val broadcastIntent = Intent("com.noxscreen.app.BIOMETRIC_SUCCESS")
+                        val broadcastIntent = Intent("com.noxscreen.app.BIOMETRIC_SUCCESS").setPackage(packageName)
                         sendBroadcast(broadcastIntent)
                     } else if (authTarget == "APP_LOCK") {
-                        val broadcastIntent = Intent("com.noxscreen.app.APP_LOCK_UNLOCKED")
+                        val broadcastIntent = Intent("com.noxscreen.app.APP_LOCK_UNLOCKED").setPackage(packageName)
                         sendBroadcast(broadcastIntent)
                     }
 
@@ -171,10 +172,15 @@ class BiometricAuthActivity : FragmentActivity() {
         promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
-            .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+            .setAllowedAuthenticators(securityManager.getSupportedAuthenticators())
             .build()
 
-        biometricPrompt.authenticate(promptInfo)
+        try {
+            biometricPrompt.authenticate(promptInfo)
+        } catch (e: Exception) {
+            setResult(Activity.RESULT_CANCELED)
+            finish()
+        }
     }
 
     private fun vibrateError() {

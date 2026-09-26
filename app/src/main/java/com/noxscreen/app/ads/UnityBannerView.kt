@@ -1,6 +1,8 @@
 package com.noxscreen.app.ads
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,11 +17,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.unity3d.services.banners.BannerView
 import com.unity3d.services.banners.UnityBannerSize
 import com.unity3d.services.banners.BannerErrorInfo
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 /**
  * UnityBannerAd
@@ -31,6 +40,10 @@ import com.unity3d.services.banners.BannerErrorInfo
  */
 @Composable
 fun UnityBannerAd(adUnitId: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+    if (activity == null) return
+
     var isBannerLoaded by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
@@ -48,8 +61,8 @@ fun UnityBannerAd(adUnitId: String, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                factory = { context ->
-                    BannerView((context as Activity), adUnitId, UnityBannerSize(320, 50)).apply {
+                factory = {
+                    BannerView(activity, adUnitId, UnityBannerSize(320, 50)).apply {
                         listener = object : BannerView.IListener {
                             override fun onBannerLoaded(bannerView: BannerView) {
                                 isBannerLoaded = true

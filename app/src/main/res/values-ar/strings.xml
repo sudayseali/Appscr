@@ -22,4 +22,15 @@
     <string name="tap_to_grant">انقر لمنح إذن الخلفية.</string>
     <string name="start">ابدأ</string>
     <string name="stop">توقف</string>
+
+    <string name="background_protection">حماية الخدمة في الخلفية</string>
+    <string name="background_protection_subtitle">منع هواتف Samsung و Xiaomi و Tecno من إيقاف القفل العائم</string>
+    <string name="battery_unrestricted_badge">غير مقيد / نشط</string>
+    <string name="battery_optimized_badge">مُحسَّن</string>
+    <string name="battery_status_unrestricted_title">نشط / غير مقيد (Unrestricted)</string>
+    <string name="battery_status_unrestricted_desc">الشاشة السوداء والقفل العائم محميان من الإغلاق التلقائي في الخلفية.</string>
+    <string name="battery_status_optimized_title">مُحسَّن (قد يتوقف في الخلفية)</string>
+    <string name="battery_status_optimized_desc">اضبط التطبيق على غير مقيد (Unrestricted) لمنع النظام من إيقاف القفل العائم.</string>
+    <string name="allow_background_run">السماح بالعمل في الخلفية</string>
+    <string name="open_app_battery_info">إعدادات بطارية التطبيق (Samsung / Xiaomi / Tecno)</string>
 </resources>

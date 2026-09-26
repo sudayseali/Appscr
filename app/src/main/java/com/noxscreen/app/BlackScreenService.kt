@@ -103,9 +103,13 @@ class BlackScreenService : Service() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.noxscreen.app.SETTINGS_UPDATED") {
                 updateFloatingBubbleStyle()
+                applyUnlockButtonStyle()
                 if (::smartAutomationManager.isInitialized) {
                     smartAutomationManager.stopSensors()
                     smartAutomationManager.startSensors()
+                }
+                if (::usageLimitMonitor.isInitialized) {
+                    usageLimitMonitor.syncWithConfig()
                 }
             }
         }
@@ -136,6 +140,7 @@ class BlackScreenService : Service() {
         usageLimitMonitor = com.noxscreen.app.automation.UsageLimitMonitor(
             context = this,
             automationSettings = smartAutomationManager.settings,
+            isOverlayCurrentlyActive = { blackoutView?.parent != null },
             onTriggerBlock = {
                 showBlackoutInternal()
             }
@@ -201,7 +206,7 @@ class BlackScreenService : Service() {
             showFloatingBubbleInternal()
             smartAutomationManager.startSensors()
         }
-        usageLimitMonitor.startMonitoring()
+        usageLimitMonitor.syncWithConfig()
         return START_STICKY
     }
 
@@ -311,12 +316,16 @@ class BlackScreenService : Service() {
         }
     }
 
+    private fun dpToPx(dp: Float): Int {
+        return (dp * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+    }
+
     private fun updateAodInfo() {
-        val timeSdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        val config = smartAutomationManager.settings.getConfig()
+        val timePattern = if (config.use24HourTime) "HH:mm" else "hh:mm a"
+        val timeSdf = java.text.SimpleDateFormat(timePattern, java.util.Locale.getDefault())
         val dateSdf = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
         val now = java.util.Date()
-        
-        val config = smartAutomationManager.settings.getConfig()
         
         val themeColor = when (config.aodThemeColor) {
             "green" -> android.graphics.Color.parseColor("#69F0AE")
@@ -360,8 +369,13 @@ class BlackScreenService : Service() {
         aodDateTextView?.text = dateSdf.format(now)
         aodDateTextView?.setTextColor(themeColor)
         
-        aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
-        aodBatteryTextView?.setTextColor(themeColor)
+        if (config.showBatteryPercentage) {
+            aodBatteryTextView?.visibility = View.VISIBLE
+            aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
+            aodBatteryTextView?.setTextColor(themeColor)
+        } else {
+            aodBatteryTextView?.visibility = View.GONE
+        }
         
         if (config.oledBurnInProtection) {
             val random = java.util.Random()
@@ -381,6 +395,74 @@ class BlackScreenService : Service() {
     }
 
     @SuppressLint("ClickableViewAccessibility")
+    private fun applyUnlockButtonStyle() {
+        val button = unlockButton as? TextView ?: return
+        val config = smartAutomationManager.settings.getConfig()
+        val style = config.unlockScreenStyle
+
+        button.setOnTouchListener(null)
+        button.setOnClickListener(null)
+
+        when (style) {
+            "swipe" -> {
+                button.text = "SWIPE UP TO UNLOCK"
+                button.setTextColor(Color.WHITE)
+                button.textSize = 16f
+                button.background = null
+                button.setPadding(0, dpToPx(16f), 0, dpToPx(16f))
+                button.gravity = Gravity.CENTER
+
+                var startY = 0f
+                button.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            startY = event.y
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            val endY = event.y
+                            if (startY - endY > dpToPx(36f)) { // Swiped up
+                                handleBlackoutUnlock()
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            }
+            "icon" -> {
+                button.text = "🔓"
+                button.setTextColor(Color.WHITE)
+                button.textSize = 40f
+                button.background = null
+                button.setPadding(dpToPx(16f), dpToPx(16f), dpToPx(16f), dpToPx(16f))
+                button.gravity = Gravity.CENTER
+
+                button.setOnClickListener {
+                    handleBlackoutUnlock()
+                }
+            }
+            else -> { // "button"
+                button.text = "UNLOCK"
+                button.setTextColor(Color.BLACK)
+                val bg = GradientDrawable()
+                bg.setColor(Color.WHITE)
+                bg.cornerRadius = dpToPx(24f).toFloat()
+                button.background = bg
+                button.gravity = Gravity.CENTER
+                button.textSize = 16f
+                button.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                button.letterSpacing = 0.1f
+                button.setPadding(dpToPx(32f), dpToPx(16f), dpToPx(32f), dpToPx(16f))
+
+                button.setOnClickListener {
+                    handleBlackoutUnlock()
+                }
+            }
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupBlackoutView() {
         blackoutView = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -389,7 +471,7 @@ class BlackScreenService : Service() {
             val topContainer = LinearLayout(this@BlackScreenService).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(0, 200, 0, 0)
+                setPadding(0, dpToPx(80f), 0, 0)
                 visibility = View.GONE
             }
             aodContainer = topContainer
@@ -425,74 +507,16 @@ class BlackScreenService : Service() {
             })
             
             unlockButton = TextView(this@BlackScreenService).apply {
-                val config = smartAutomationManager.settings.getConfig()
-                val style = config.unlockScreenStyle
-                
-                when (style) {
-                    "swipe" -> {
-                        text = "SWIPE UP TO UNLOCK"
-                        setTextColor(Color.WHITE)
-                        background = null
-                        setPadding(0, 40, 0, 40)
-                        gravity = Gravity.CENTER
-                        
-                        var startY = 0f
-                        setOnTouchListener { v, event ->
-                            when (event.action) {
-                                MotionEvent.ACTION_DOWN -> {
-                                    startY = event.y
-                                    true
-                                }
-                                MotionEvent.ACTION_UP -> {
-                                    val endY = event.y
-                                    if (startY - endY > 100) { // Swiped up
-                                        handleBlackoutUnlock()
-                                    }
-                                    true
-                                }
-                                else -> false
-                            }
-                        }
-                    }
-                    "icon" -> {
-                        text = "🔓"
-                        setTextColor(Color.WHITE)
-                        textSize = 40f
-                        background = null
-                        setPadding(40, 40, 40, 40)
-                        gravity = Gravity.CENTER
-                        
-                        setOnClickListener {
-                            handleBlackoutUnlock()
-                        }
-                    }
-                    else -> { // "button"
-                        text = "UNLOCK"
-                        setTextColor(Color.BLACK)
-                        val bg = GradientDrawable()
-                        bg.setColor(Color.WHITE)
-                        bg.cornerRadius = 60f
-                        background = bg
-                        gravity = Gravity.CENTER
-                        textSize = 16f
-                        typeface = android.graphics.Typeface.DEFAULT_BOLD
-                        letterSpacing = 0.1f
-                        setPadding(80, 40, 80, 40)
-                        
-                        setOnClickListener {
-                            handleBlackoutUnlock()
-                        }
-                    }
-                }
                 visibility = View.GONE
             }
+            applyUnlockButtonStyle()
             
             addView(unlockButton, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, 
                 FrameLayout.LayoutParams.WRAP_CONTENT
         ).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = 150
+                bottomMargin = dpToPx(64f)
             })
         }
 
@@ -509,11 +533,12 @@ class BlackScreenService : Service() {
                     val config = smartAutomationManager.settings.getConfig()
                     if (tapCount >= config.tapsToWake) {
                         if (config.isSkipUnlockScreenEnabled) {
-                            smartAutomationManager.handleManualDismiss()
-                            showFloatingBubbleInternal()
+                            tapCount = 0
+                            handleBlackoutUnlock()
                         } else {
                             isUnlockScreenVisible = true
                             tapCount = 0
+                            applyUnlockButtonStyle()
                             
                             aodContainer?.visibility = View.VISIBLE
                             updateAodInfo()
@@ -534,8 +559,10 @@ class BlackScreenService : Service() {
     private fun updateFloatingBubbleStyle() {
         val entitlementManager = com.noxscreen.app.automation.FloatingLockEntitlementManager(this)
         val config = smartAutomationManager.settings.getConfig()
-        val size = (150 * config.floatingLockSize).toInt()
-        val padding = (24 * config.floatingLockSize).toInt()
+        val baseSizePx = dpToPx(64f)
+        val basePaddingPx = dpToPx(10f)
+        val size = (baseSizePx * config.floatingLockSize).toInt().coerceAtLeast(dpToPx(48f))
+        val padding = (basePaddingPx * config.floatingLockSize).toInt().coerceAtLeast(dpToPx(6f))
         
         // Ensure that if the selected style expired, fallback to "lock"
         val activeStyle = if (entitlementManager.isStyleUnlocked(config.floatingLockStyle)) {
@@ -543,6 +570,8 @@ class BlackScreenService : Service() {
         } else {
             "lock"
         }
+        
+        floatingView?.visibility = if (config.hideFloatingButton) View.GONE else View.VISIBLE
         
         floatingIconView?.apply {
             layoutParams = FrameLayout.LayoutParams(size, size)

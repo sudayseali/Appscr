@@ -36,4 +36,21 @@
     <string name="skip_unlock_screen">Skip Unlock Screen</string>
     <string name="privacy_tint">Privacy Tint</string>
     <string name="sleep_timer">Sleep Timer</string>
+
+    <string name="support">Support</string>
+    <string name="support_subtitle">Direct help &amp; customer assistance</string>
+    <string name="whatsapp_support">WhatsApp Support</string>
+    <string name="whatsapp_support_prompt">Need help with NoXScreen? Contact us on WhatsApp.</string>
+    <string name="whatsapp">WhatsApp</string>
+
+    <string name="background_protection">Background Protection</string>
+    <string name="background_protection_subtitle">Keep Floating Lock &amp; Black Screen active in background</string>
+    <string name="battery_unrestricted_badge">Active / Unrestricted</string>
+    <string name="battery_optimized_badge">Optimized</string>
+    <string name="battery_status_unrestricted_title">Active / Unrestricted</string>
+    <string name="battery_status_unrestricted_desc">Black Screen &amp; Floating Lock are protected from background battery killers.</string>
+    <string name="battery_status_optimized_title">Optimized (May Stop in Background)</string>
+    <string name="battery_status_optimized_desc">Set NoxScreen to Unrestricted / Don\'t Optimize so Samsung, Xiaomi, or Tecno never stops Floating Lock.</string>
+    <string name="allow_background_run">Allow Background Run</string>
+    <string name="open_app_battery_info">App Battery Info (Samsung / Xiaomi / Tecno)</string>
 </resources>

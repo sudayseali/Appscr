@@ -1,10 +1,21 @@
 package com.noxscreen.app.automation
 
+import android.content.Context
+import androidx.biometric.BiometricManager.Authenticators
+import androidx.test.core.app.ApplicationProvider
+import com.noxscreen.app.security.AppSecurityManager
+import com.noxscreen.app.support.SupportHelper
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import kotlin.math.abs
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class PocketDetectorTest {
     
     @Test
@@ -91,5 +102,51 @@ class PocketDetectorTest {
         }
         
         return c.coerceIn(0, 100)
+    }
+
+    @Test
+    fun testUsageLimitMonitorDoesNotPollWhenFocusModeDisabled() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val settings = AutomationSettings(context)
+        settings.updateConfig(
+            AutomationConfig(
+                isUsageLimitsEnabled = false,
+                isScheduleEnabled = false,
+                blockedApps = emptySet()
+            )
+        )
+        val monitor = UsageLimitMonitor(
+            context = context,
+            automationSettings = settings,
+            isOverlayCurrentlyActive = { false },
+            onTriggerBlock = {}
+        )
+        assertFalse("UsageLimitMonitor must not run polling loop when Focus Mode is disabled", monitor.shouldRunMonitoring())
+
+        settings.updateConfig(
+            AutomationConfig(
+                isUsageLimitsEnabled = true,
+                isScheduleEnabled = false,
+                blockedApps = setOf("com.example.social")
+            )
+        )
+        assertTrue("UsageLimitMonitor should run when usage limits enabled and blockedApps non-empty", monitor.shouldRunMonitoring())
+    }
+
+    @Test
+    fun testSupportHelperConstantsAndUri() {
+        assertEquals("NoXScreen Support", SupportHelper.WHATSAPP_ACCOUNT_NAME)
+        assertEquals("+252637864155", SupportHelper.WHATSAPP_PHONE_NUMBER)
+        assertEquals("https://wa.me/252637864155", SupportHelper.WHATSAPP_URL)
+        assertEquals("https://wa.me/252637864155", SupportHelper.buildWhatsAppUri(includeDefaultMessage = false).toString())
+        assertTrue(SupportHelper.buildWhatsAppUri(includeDefaultMessage = true).toString().startsWith("https://wa.me/252637864155?text="))
+    }
+
+    @Test
+    fun testAppSecurityManagerAuthenticatorsApi36() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val securityManager = AppSecurityManager(context)
+        val expected = Authenticators.BIOMETRIC_STRONG or Authenticators.BIOMETRIC_WEAK or Authenticators.DEVICE_CREDENTIAL
+        assertEquals(expected, securityManager.getSupportedAuthenticators())
     }
 }
