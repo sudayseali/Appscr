@@ -149,4 +149,38 @@ class PocketDetectorTest {
         val expected = Authenticators.BIOMETRIC_STRONG or Authenticators.BIOMETRIC_WEAK or Authenticators.DEVICE_CREDENTIAL
         assertEquals(expected, securityManager.getSupportedAuthenticators())
     }
+
+    @Test
+    fun testBackgroundProtectionStateMatchesAndroidSettings() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+
+        val shadowPm = org.robolectric.Shadows.shadowOf(pm)
+        val shadowAm = org.robolectric.Shadows.shadowOf(am)
+
+        // 1. When Android Settings switch is ON (isIgnoringBatteryOptimizations == false, background not restricted) -> Active (true)
+        shadowPm.setIgnoringBatteryOptimizations(context.packageName, false)
+        shadowAm.setBackgroundRestricted(false)
+        assertTrue(
+            "Background Protection should be Active when Android Settings switch is ON",
+            com.noxscreen.app.isBatteryOptimizationIgnored(context)
+        )
+
+        // 2. When Android Settings switch is turned OFF (isIgnoringBatteryOptimizations == true) -> Not Active (false)
+        shadowPm.setIgnoringBatteryOptimizations(context.packageName, true)
+        shadowAm.setBackgroundRestricted(false)
+        assertFalse(
+            "Background Protection should be Not Active when Android Settings switch is OFF",
+            com.noxscreen.app.isBatteryOptimizationIgnored(context)
+        )
+
+        // 3. When App Battery Usage background restriction is enabled (OFF) -> Not Active (false)
+        shadowPm.setIgnoringBatteryOptimizations(context.packageName, false)
+        shadowAm.setBackgroundRestricted(true)
+        assertFalse(
+            "Background Protection should be Not Active when background restriction is enabled",
+            com.noxscreen.app.isBatteryOptimizationIgnored(context)
+        )
+    }
 }

@@ -1,21 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group
-        android:scaleX="2.5"
-        android:scaleY="2.5"
-        android:translateX="24"
-        android:translateY="24">
-        <!-- Elegant Crescent Moon -->
-        <path
-            android:fillColor="#00E5FF"
-            android:pathData="M12.3,2a10,10 0 0,0 -1.9,0.18 10,10 0 1,1 -8.22,13.92A10,10 0 0,0 12.3,2z" />
-        <!-- Subtle Glow Sparkle -->
-        <path
-            android:fillColor="#76FFFF"
-            android:pathData="M19,4l0.8,1.8 1.8,0.8 -1.8,0.8 -0.8,1.8 -0.8,-1.8 -1.8,-0.8 1.8,-0.8z" />
-    </group>
+
+    <!-- 1. Wide atmospheric cyan ambient halo -->
+    <path android:pathData="M54.6,25.2 A29,29 0 1,1 54.6,83.2 A29,29 0 1,1 54.6,25.2 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54.6"
+                android:centerY="54.2"
+                android:gradientRadius="29">
+                <item android:offset="0.0" android:color="#0000E5FF" />
+                <item android:offset="0.55" android:color="#5200EAFF" />
+                <item android:offset="0.68" android:color="#3800DCFF" />
+                <item android:offset="0.80" android:color="#1B00C4FF" />
+                <item android:offset="0.90" android:color="#0A00A8FF" />
+                <item android:offset="1.0" android:color="#000090FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Concentrated neon cyan bloom around the right crescent -->
+    <path android:pathData="M55.5,29.1 A25,25 0 1,1 55.5,79.1 A25,25 0 1,1 55.5,29.1 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="55.5"
+                android:centerY="54.1"
+                android:gradientRadius="25">
+                <item android:offset="0.0" android:color="#FF00F7FF" />
+                <item android:offset="0.72" android:color="#E600F2FF" />
+                <item android:offset="0.79" android:color="#8500E5FF" />
+                <item android:offset="0.87" android:color="#3800C8FF" />
+                <item android:offset="0.94" android:color="#1200A8FF" />
+                <item android:offset="1.0" android:color="#000090FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3. Subtle left-rim cyan atmosphere around the dark sphere -->
+    <path android:pathData="M52.4,32.7 A21.2,21.2 0 1,1 52.4,75.1 A21.2,21.2 0 1,1 52.4,32.7 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="52.4"
+                android:centerY="53.9"
+                android:gradientRadius="21.2">
+                <item android:offset="0.0" android:color="#00000000" />
+                <item android:offset="0.79" android:color="#5800E5FF" />
+                <item android:offset="0.86" android:color="#2800C8FF" />
+                <item android:offset="0.94" android:color="#0C00A0FF" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 4. Luminous Electric Cyan Crescent Core -->
+    <path android:pathData="M55.3,35.0 A19.1,19.1 0 1,1 55.3,73.2 A19.1,19.1 0 1,1 55.3,35.0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="46"
+                android:startY="36"
+                android:endX="74"
+                android:endY="68">
+                <item android:offset="0.0" android:color="#64FAFF" />
+                <item android:offset="0.45" android:color="#9EFFFF" />
+                <item android:offset="0.75" android:color="#00F5FF" />
+                <item android:offset="1.0" android:color="#00D4F0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 5. Inner Matte Black Eclipse Disc (Occluder) -->
+    <path android:pathData="M52.3,36.3 A17.6,17.6 0 1,1 52.3,71.5 A17.6,17.6 0 1,1 52.3,36.3 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="36"
+                android:startY="38"
+                android:endX="68"
+                android:endY="70">
+                <item android:offset="0.0" android:color="#0D1116" />
+                <item android:offset="0.45" android:color="#06080B" />
+                <item android:offset="1.0" android:color="#020305" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 6. Precision 3D rim highlight along the dark disc edge -->
+    <path
+        android:pathData="M52.3,36.3 A17.6,17.6 0 1,1 52.3,71.5 A17.6,17.6 0 1,1 52.3,36.3 Z"
+        android:strokeWidth="0.45">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="34.7"
+                android:startY="53.9"
+                android:endX="69.9"
+                android:endY="53.9">
+                <item android:offset="0.0" android:color="#403A5A66" />
+                <item android:offset="0.65" android:color="#2500B8D4" />
+                <item android:offset="1.0" android:color="#9052FFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

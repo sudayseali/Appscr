@@ -179,22 +179,46 @@ fun BlackoutScreen(onUnlock: () -> Unit) {
             },
         contentAlignment = Alignment.Center
     ) {
-        if (isUnlockScreenVisible) {
-            UnlockScreenView(onUnlock = onUnlock)
+        if (isUnlockScreenVisible || autoConfig.isAodEnabled) {
+            UnlockScreenView(
+                onUnlock = onUnlock,
+                showUnlockButton = isUnlockScreenVisible
+            )
         }
     }
 }
 
 @Composable
-fun UnlockScreenView(onUnlock: () -> Unit) {
+fun UnlockScreenView(
+    onUnlock: () -> Unit,
+    showUnlockButton: Boolean = true
+) {
     val context = LocalContext.current
-    var currentTime by remember { mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())) }
+    val automationSettings = remember { com.noxscreen.app.automation.AutomationSettings(context) }
+    var autoConfig by remember { mutableStateOf(automationSettings.getConfig()) }
+    val timePattern = if (autoConfig.use24HourTime) "HH:mm" else "hh:mm"
+
+    fun readBatteryPct(): Int {
+        return try {
+            val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+            bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
+        } catch (e: Exception) {
+            100
+        }
+    }
+
+    var currentTime by remember { mutableStateOf(SimpleDateFormat(timePattern, Locale.getDefault()).format(Date())) }
     var currentDate by remember { mutableStateOf(SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date())) }
+    var batteryPct by remember { mutableStateOf(readBatteryPct()) }
     
     LaunchedEffect(Unit) {
         while(true) {
-            currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-            currentDate = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date())
+            autoConfig = automationSettings.getConfig()
+            val activePattern = if (autoConfig.use24HourTime) "HH:mm" else "hh:mm"
+            val now = Date()
+            currentTime = SimpleDateFormat(activePattern, Locale.getDefault()).format(now)
+            currentDate = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(now)
+            batteryPct = readBatteryPct()
             delay(1000)
         }
     }
@@ -204,48 +228,55 @@ fun UnlockScreenView(onUnlock: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top section with time, date, and battery
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 100.dp)
-        ) {
-            Text(
-                text = currentTime,
-                color = Color.White,
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = currentDate,
-                color = Color.White,
-                fontSize = 16.sp
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Icon(
-                imageVector = Icons.Default.BatteryFull,
-                contentDescription = "Battery",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
+        // Top section with time, date, and battery matching the reference design
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { ctx ->
+                BlackScreenClockView(ctx).apply {
+                    updateState(
+                        time = currentTime,
+                        date = currentDate,
+                        battery = batteryPct,
+                        showBattery = autoConfig.showBatteryPercentage,
+                        clockStyle = autoConfig.clockStyle,
+                        themeColor = autoConfig.aodThemeColor
+                    )
+                }
+            },
+            update = { view ->
+                view.updateState(
+                    time = currentTime,
+                    date = currentDate,
+                    battery = batteryPct,
+                    showBattery = autoConfig.showBatteryPercentage,
+                    clockStyle = autoConfig.clockStyle,
+                    themeColor = autoConfig.aodThemeColor
+                )
+            },
+            modifier = Modifier
+                .padding(top = 88.dp)
+                .fillMaxWidth()
+                .height(265.dp)
+        )
         
         // Bottom unlock section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 60.dp)
-                .clickable { onUnlock() },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "UNLOCK",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
-            )
+        if (showUnlockButton) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 60.dp)
+                    .clickable { onUnlock() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "UNLOCK",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.height(60.dp))
         }
     }
 }

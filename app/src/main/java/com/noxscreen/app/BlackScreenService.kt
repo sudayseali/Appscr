@@ -59,6 +59,7 @@ class BlackScreenService : Service() {
     private var aodBatteryTextView: TextView? = null
     private var aodStatusTextView: TextView? = null
     private var aodDateTextView: TextView? = null
+    private var aodClockHeaderView: BlackScreenClockView? = null
     private var aodContainer: View? = null
     private var unlockButton: View? = null
     private var tapCount = 0
@@ -105,6 +106,13 @@ class BlackScreenService : Service() {
                 updateFloatingBubbleStyle()
                 applyUnlockButtonStyle()
                 if (::smartAutomationManager.isInitialized) {
+                    val config = smartAutomationManager.settings.getConfig()
+                    if (isUnlockScreenVisible || config.isAodEnabled) {
+                        aodContainer?.visibility = View.VISIBLE
+                        updateAodInfo()
+                    } else if (blackoutView?.parent != null) {
+                        aodContainer?.visibility = View.GONE
+                    }
                     smartAutomationManager.stopSensors()
                     smartAutomationManager.startSensors()
                 }
@@ -322,61 +330,23 @@ class BlackScreenService : Service() {
 
     private fun updateAodInfo() {
         val config = smartAutomationManager.settings.getConfig()
-        val timePattern = if (config.use24HourTime) "HH:mm" else "hh:mm a"
+        val timePattern = if (config.use24HourTime) "HH:mm" else "hh:mm"
         val timeSdf = java.text.SimpleDateFormat(timePattern, java.util.Locale.getDefault())
         val dateSdf = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
         val now = java.util.Date()
-        
-        val themeColor = when (config.aodThemeColor) {
-            "green" -> android.graphics.Color.parseColor("#69F0AE")
-            "blue" -> android.graphics.Color.parseColor("#82B1FF")
-            "yellow" -> android.graphics.Color.parseColor("#FFD54F")
-            "pink" -> android.graphics.Color.parseColor("#FF80AB")
-            else -> android.graphics.Color.WHITE
-        }
+        val formattedTime = timeSdf.format(now)
+        val formattedDate = dateSdf.format(now)
+        val batteryPct = getBatteryPercentage()
 
-        when (config.clockStyle) {
-            "huge" -> {
-                aodClockTextView?.textSize = 110f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-thin", android.graphics.Typeface.NORMAL)
-            }
-            "analog" -> {
-                aodClockTextView?.textSize = 72f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.ITALIC)
-            }
-            "dino" -> {
-                aodClockTextView?.textSize = 60f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
-            }
-            else -> {
-                aodClockTextView?.textSize = 100f
-                aodClockTextView?.setTextColor(themeColor)
-                aodClockTextView?.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
-            }
-        }
-        
-        if (config.clockStyle == "dino") {
-            aodClockTextView?.text = "🦖\n${timeSdf.format(now)}"
-        } else if (config.clockStyle == "analog") {
-            aodClockTextView?.text = "🕰️\n${timeSdf.format(now)}"
-        } else {
-            aodClockTextView?.text = timeSdf.format(now)
-        }
-        
-        aodDateTextView?.text = dateSdf.format(now)
-        aodDateTextView?.setTextColor(themeColor)
-        
-        if (config.showBatteryPercentage) {
-            aodBatteryTextView?.visibility = View.VISIBLE
-            aodBatteryTextView?.text = "🔋 ${getBatteryPercentage()}%"
-            aodBatteryTextView?.setTextColor(themeColor)
-        } else {
-            aodBatteryTextView?.visibility = View.GONE
-        }
-        
+        aodClockHeaderView?.updateState(
+            time = formattedTime,
+            date = formattedDate,
+            battery = batteryPct,
+            showBattery = config.showBatteryPercentage,
+            clockStyle = config.clockStyle,
+            themeColor = config.aodThemeColor
+        )
+
         if (config.oledBurnInProtection) {
             val random = java.util.Random()
             val xOffset = random.nextInt(31) - 15 // -15 to +15 pixels
@@ -471,33 +441,20 @@ class BlackScreenService : Service() {
             val topContainer = LinearLayout(this@BlackScreenService).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(0, dpToPx(80f), 0, 0)
+                setPadding(0, dpToPx(88f), 0, 0)
                 visibility = View.GONE
             }
             aodContainer = topContainer
 
-            aodClockTextView = TextView(this@BlackScreenService).apply {
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                textSize = 64f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-            }
-            topContainer.addView(aodClockTextView)
-
-            aodDateTextView = TextView(this@BlackScreenService).apply {
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                textSize = 18f
-                setPadding(0, 0, 0, 16)
-            }
-            topContainer.addView(aodDateTextView)
-
-            aodBatteryTextView = TextView(this@BlackScreenService).apply {
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                textSize = 16f
-            }
-            topContainer.addView(aodBatteryTextView)
+            val clockHeaderView = BlackScreenClockView(this@BlackScreenService)
+            aodClockHeaderView = clockHeaderView
+            topContainer.addView(
+                clockHeaderView,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(265f)
+                )
+            )
 
             addView(topContainer, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, 

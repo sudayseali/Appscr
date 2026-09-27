@@ -428,43 +428,51 @@ fun ZenithApp(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "NoxScreen",
-                                color = Color.White,
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = (-0.5).sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(Color(0xFF00E5FF), Color(0xFF00E676))
-                                        )
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "PRO",
-                                    color = Color(0xFF020612),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 1.sp
-                                )
-                            }
-                        }
-                        Text(
-                            text = stringResource(R.string.eco_screen_optimizer).uppercase(),
-                            color = Color(0xFF94A3B8),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            modifier = Modifier.padding(top = 2.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_noxscreen_app_icon),
+                            contentDescription = "NoxScreen App Icon",
+                            modifier = Modifier.size(46.dp)
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "NoxScreen",
+                                    color = Color.White,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = (-0.5).sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(Color(0xFF00E5FF), Color(0xFF00E676))
+                                            )
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "PRO",
+                                        color = Color(0xFF020612),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+                            }
+                            Text(
+                                text = stringResource(R.string.eco_screen_optimizer).uppercase(),
+                                color = Color(0xFF94A3B8),
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
                     }
 
                     // Protected / Active Badge
@@ -662,14 +670,19 @@ fun ZenithApp(
                     }
                 ) {
                     Column {
-                        AodGraphic()
+                        AodGraphic(
+                            clockStyle = autoConfig.clockStyle,
+                            aodThemeColor = autoConfig.aodThemeColor,
+                            showBattery = autoConfig.showBatteryPercentage
+                        )
                         if (autoConfig.isAodEnabled) {
                             com.noxscreen.app.ui.ClockStyleSelector(
                                 selectedStyle = autoConfig.clockStyle,
                                 onStyleSelected = { newStyle ->
                                     autoConfig = autoConfig.copy(clockStyle = newStyle)
                                     automationSettings.updateConfig(autoConfig)
-                                }
+                                },
+                                selectedTheme = autoConfig.aodThemeColor
                             )
                             com.noxscreen.app.ui.AodThemeSelector(
                                 selectedTheme = autoConfig.aodThemeColor,
@@ -1274,9 +1287,16 @@ fun ZenithApp(
                 mutableStateOf(isBatteryOptimizationIgnored(context))
             }
 
+            LaunchedEffect(Unit) {
+                while (true) {
+                    isIgnoringBatteryOptimizations = isBatteryOptimizationIgnored(context)
+                    kotlinx.coroutines.delay(500)
+                }
+            }
+
             DisposableEffect(batteryLifecycleOwner) {
                 val observer = LifecycleEventObserver { _, event ->
-                    if (event == Lifecycle.Event.ON_RESUME) {
+                    if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
                         isIgnoringBatteryOptimizations = isBatteryOptimizationIgnored(context)
                     }
                 }
@@ -2615,60 +2635,46 @@ fun LanguageGraphic() {
 }
 
 @Composable
-fun AodGraphic() {
+fun AodGraphic(
+    clockStyle: String = "default",
+    aodThemeColor: String = "white",
+    showBattery: Boolean = true
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(42.dp)
-            .background(Color(0xFF050810), RoundedCornerShape(10.dp))
-            .border(1.dp, Color(0xFF131F33), RoundedCornerShape(10.dp)),
+            .height(172.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.Black)
+            .border(1.dp, Color(0xFF132238), RoundedCornerShape(14.dp))
+            .padding(vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .background(Color(0xFF00E676), CircleShape)
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { ctx ->
+                BlackScreenClockView(ctx).apply {
+                    updateState(
+                        time = "12:23",
+                        date = "Axd, Seb 27",
+                        battery = 87,
+                        showBattery = showBattery,
+                        clockStyle = clockStyle,
+                        themeColor = aodThemeColor
+                    )
+                }
+            },
+            update = { view ->
+                view.updateState(
+                    time = "12:23",
+                    date = "Axd, Seb 27",
+                    battery = 87,
+                    showBattery = showBattery,
+                    clockStyle = clockStyle,
+                    themeColor = aodThemeColor
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "10:09 AM",
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Mon, Oct 24",
-                    color = Color(0xFF64748B),
-                    fontSize = 10.sp
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.BatteryChargingFull,
-                    contentDescription = "Battery charging icon",
-                    tint = Color(0xFF00E676),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "88%",
-                    color = Color(0xFF00E676),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -2885,13 +2891,30 @@ fun WhatsAppSupportCard() {
     }
 }
 
+fun evaluateBackgroundProtectionState(
+    isIgnoringBatteryOptimizations: Boolean,
+    isBackgroundRestricted: Boolean
+): Boolean {
+    return !isIgnoringBatteryOptimizations && !isBackgroundRestricted
+}
+
 fun isBatteryOptimizationIgnored(context: Context): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    val isBackgroundRestricted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        am?.isBackgroundRestricted == true
+    } else {
+        false
+    }
+    val isIgnoringBatteryOpt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         val pm = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
         pm?.isIgnoringBatteryOptimizations(context.packageName) == true
     } else {
-        true
+        false
     }
+    return evaluateBackgroundProtectionState(
+        isIgnoringBatteryOptimizations = isIgnoringBatteryOpt,
+        isBackgroundRestricted = isBackgroundRestricted
+    )
 }
 
 fun openBatteryOptimizationSettings(context: Context) {
