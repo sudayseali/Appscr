@@ -23,12 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.drawable.toBitmap
+import com.noxscreen.app.R
 import com.noxscreen.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -117,7 +119,7 @@ fun AppSelectionDialog(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "Select Apps to Block",
+                    text = stringResource(R.string.select_apps_to_block),
                     color = Color.White,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
@@ -132,8 +134,8 @@ fun AppSelectionDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    placeholder = { Text("Search apps...", color = Color.Gray, fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
+                    placeholder = { Text(stringResource(R.string.search_apps_placeholder), color = Color.Gray, fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_apps_placeholder), tint = Color.Gray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFF1E293B),
                         unfocusedContainerColor = Color(0xFF1E293B),
@@ -172,20 +174,20 @@ fun AppSelectionDialog(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${selectedApps.size} apps selected",
+                                text = stringResource(R.string.selected_apps_count_format, selectedApps.size),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp
                             )
                             Text(
-                                text = "These apps will be blocked during scheduled time",
+                                text = stringResource(R.string.selected_apps_blocked_desc),
                                 color = Color.Gray,
                                 fontSize = 12.sp
                             )
                         }
 
                         Text(
-                            text = "Clear All",
+                            text = stringResource(R.string.clear_all),
                             color = ZenithAccent,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
@@ -287,7 +289,7 @@ fun AppSelectionDialog(
                         ),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E293B))
                     ) {
-                        Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.cancel), fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
 
                     Button(
@@ -298,7 +300,7 @@ fun AppSelectionDialog(
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ZenithAccent)
                     ) {
-                        Text("Save (${selectedApps.size})", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.save_count_format, selectedApps.size), color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

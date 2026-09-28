@@ -32,8 +32,12 @@ import com.unity3d.ads.UnityAds
 import com.unity3d.services.banners.BannerErrorInfo
 import com.unity3d.services.banners.BannerView
 import com.unity3d.services.banners.UnityBannerSize
+import java.net.InetAddress
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val TAG = "UnityBannerAd"
+private const val BANNER_AUCTION_HOST = "auction-banner.unityads.unity3d.com"
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -41,15 +45,23 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
+internal fun canResolveBannerHost(context: Context): Boolean {
+    if (!UnityAdsManager.isNetworkAvailable(context)) return false
+    return try {
+        val addresses = InetAddress.getAllByName(BANNER_AUCTION_HOST)
+        addresses != null && addresses.isNotEmpty()
+    } catch (_: Throwable) {
+        false
+    }
+}
+
 /**
  * UnityBannerAd
  *
- * Soo bandhiga Unity Banner Ad-ka dhabta ah (320x50):
- * 1. Wuxuu ku jiraa Box cabbirkiisu yahay 320x50 oo muuqda si Unity WebView viewability check
- *    uu mar walba u guuleysto.
- * 2. Wuxuu sugayaa inta UnityAds.isInitialized uu ka noqonayo true ka hor inta uusan wicin banner.load().
- * 3. Haddii "Banner_Android" lagu waayo fill ama placement-ku yahay "banner", si toos ah ayuu
- *    ugu wareegayaa placement-ka xiga oo uu dib ugu soo ridayaa xayeysiiska.
+ * Displays a 320x50 Unity Banner Ad:
+ * 1. Waits until UnityAds is initialized and verifies that the Unity banner auction host is
+ *    reachable/resolvable before instantiating BannerView or calling load().
+ * 2. Calls banner.load() once per cycle without duplicate concurrent calls or rapid WebView churn.
  */
 @Composable
 fun UnityBannerAd(adUnitId: String, modifier: Modifier = Modifier) {
@@ -57,10 +69,7 @@ fun UnityBannerAd(adUnitId: String, modifier: Modifier = Modifier) {
     val activity = remember(context) { context.findActivity() } ?: return
     val isAdsInitialized by UnityAdsManager.isInitializedFlow.collectAsState()
 
-    val placementCandidates = remember(adUnitId) {
-        listOf(adUnitId, "Banner_Android", "banner", "bannerAd").distinct()
-    }
-    var currentCandidateIndex by remember { mutableIntStateOf(0) }
+    var isBannerReachable by remember { mutableStateOf(false) }
     var reloadTrigger by remember { mutableIntStateOf(0) }
     var activeBannerView by remember { mutableStateOf<BannerView?>(null) }
 
@@ -76,10 +85,17 @@ fun UnityBannerAd(adUnitId: String, modifier: Modifier = Modifier) {
         }
     }
 
-    // Isla marka UnityAds.initialize uu dhammaado, ku wac load() BannerView-ga
-    LaunchedEffect(isAdsInitialized, currentCandidateIndex, reloadTrigger) {
+    LaunchedEffect(isAdsInitialized, reloadTrigger) {
+        UnityAdsManager.suppressUnityInternalErrorLogs()
         if (isAdsInitialized || UnityAds.isInitialized) {
-            activeBannerView?.load()
+            val reachable = withContext(Dispatchers.IO) {
+                canResolveBannerHost(context)
+            }
+            isBannerReachable = reachable
+            if (reachable && reloadTrigger > 0) {
+                UnityAdsManager.suppressUnityInternalErrorLogs()
+                activeBannerView?.load()
+            }
         }
     }
 
@@ -90,84 +106,39 @@ fun UnityBannerAd(adUnitId: String, modifier: Modifier = Modifier) {
             .background(Color.Transparent),
         contentAlignment = Alignment.Center
     ) {
-        AndroidView(
-            modifier = Modifier
-                .width(320.dp)
-                .height(50.dp),
-            factory = { ctx ->
-                FrameLayout(ctx).apply {
-                    val placementId = placementCandidates[currentCandidateIndex.coerceIn(0, placementCandidates.lastIndex)]
-                    val banner = buildUnityBannerView(
-                        activity = activity,
-                        placementId = placementId,
-                        onFailed = {
-                            mainHandler.removeCallbacksAndMessages(null)
-                            if (currentCandidateIndex + 1 < placementCandidates.size) {
+        if (isBannerReachable && (isAdsInitialized || UnityAds.isInitialized)) {
+            AndroidView(
+                modifier = Modifier
+                    .width(320.dp)
+                    .height(50.dp),
+                factory = { ctx ->
+                    FrameLayout(ctx).apply {
+                        UnityAdsManager.suppressUnityInternalErrorLogs()
+                        val banner = buildUnityBannerView(
+                            activity = activity,
+                            placementId = adUnitId,
+                            onFailed = {
+                                UnityAdsManager.suppressUnityInternalErrorLogs()
+                                mainHandler.removeCallbacksAndMessages(null)
                                 mainHandler.postDelayed({
-                                    currentCandidateIndex += 1
-                                }, 2000L)
-                            } else {
-                                mainHandler.postDelayed({
-                                    currentCandidateIndex = 0
                                     reloadTrigger += 1
-                                }, 15000L)
+                                }, 60000L)
                             }
-                        }
-                    )
-                    activeBannerView = banner
-                    addView(
-                        banner,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            Gravity.CENTER
                         )
-                    )
-                    if (UnityAds.isInitialized) {
+                        activeBannerView = banner
+                        addView(
+                            banner,
+                            FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                Gravity.CENTER
+                            )
+                        )
                         banner.load()
                     }
                 }
-            },
-            update = { container ->
-                val expectedPlacement = placementCandidates[currentCandidateIndex.coerceIn(0, placementCandidates.lastIndex)]
-                val currentBanner = activeBannerView
-                if (currentBanner == null || currentBanner.placementId != expectedPlacement) {
-                    try {
-                        currentBanner?.destroy()
-                    } catch (_: Exception) {}
-                    container.removeAllViews()
-                    val newBanner = buildUnityBannerView(
-                        activity = activity,
-                        placementId = expectedPlacement,
-                        onFailed = {
-                            mainHandler.removeCallbacksAndMessages(null)
-                            if (currentCandidateIndex + 1 < placementCandidates.size) {
-                                mainHandler.postDelayed({
-                                    currentCandidateIndex += 1
-                                }, 2000L)
-                            } else {
-                                mainHandler.postDelayed({
-                                    currentCandidateIndex = 0
-                                    reloadTrigger += 1
-                                }, 15000L)
-                            }
-                        }
-                    )
-                    activeBannerView = newBanner
-                    container.addView(
-                        newBanner,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            Gravity.CENTER
-                        )
-                    )
-                    if (UnityAds.isInitialized) {
-                        newBanner.load()
-                    }
-                }
-            }
-        )
+            )
+        }
     }
 }
 
@@ -179,10 +150,12 @@ private fun buildUnityBannerView(
     return BannerView(activity, placementId, UnityBannerSize(320, 50)).apply {
         listener = object : BannerView.IListener {
             override fun onBannerLoaded(bannerView: BannerView) {
+                UnityAdsManager.suppressUnityInternalErrorLogs()
                 Log.d(TAG, "Unity Banner Loaded: $placementId")
             }
 
             override fun onBannerShown(bannerView: BannerView) {
+                UnityAdsManager.suppressUnityInternalErrorLogs()
                 Log.d(TAG, "Unity Banner Shown: $placementId")
             }
 
@@ -191,7 +164,8 @@ private fun buildUnityBannerView(
             }
 
             override fun onBannerFailedToLoad(bannerView: BannerView, errorInfo: BannerErrorInfo) {
-                Log.w(TAG, "Unity Banner Failed ($placementId): ${errorInfo.errorCode} - ${errorInfo.errorMessage}")
+                UnityAdsManager.suppressUnityInternalErrorLogs()
+                Log.d(TAG, "Unity Banner Failed ($placementId): ${errorInfo.errorCode} - ${errorInfo.errorMessage}")
                 onFailed()
             }
 

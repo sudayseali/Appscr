@@ -20,9 +20,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.noxscreen.app.R
 import com.noxscreen.app.ui.theme.ZenithCardBorder
 import com.noxscreen.app.ui.theme.ZenithTextMuted
 
@@ -62,7 +64,7 @@ fun AodThemeSelector(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "AOD Neon Theme",
+                text = stringResource(R.string.aod_neon_theme),
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold

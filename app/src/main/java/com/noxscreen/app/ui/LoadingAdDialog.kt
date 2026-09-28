@@ -20,11 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.noxscreen.app.R
 import com.noxscreen.app.ui.theme.*
 
 @Composable
@@ -118,7 +120,7 @@ fun LoadingAdDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Loading Ad",
+                    text = stringResource(R.string.loading_ad_title),
                     color = Color.White,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
@@ -127,7 +129,7 @@ fun LoadingAdDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "Please wait a moment while we load\nan ad for you",
+                    text = stringResource(R.string.loading_ad_subtitle),
                     color = Color.Gray,
                     fontSize = 14.sp,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -167,9 +169,9 @@ fun LoadingAdDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    FeatureItem(Icons.Default.Security, "Ad is secure")
-                    FeatureItem(Icons.Default.Bolt, "Quick & safe", ZenithAccent) // Using Accent for middle icon
-                    FeatureItem(Icons.Default.Block, "No personal data", Color(0xFFF59E0B)) // Using amber for block icon
+                    FeatureItem(Icons.Default.Security, stringResource(R.string.ad_feature_secure))
+                    FeatureItem(Icons.Default.Bolt, stringResource(R.string.ad_feature_quick), ZenithAccent)
+                    FeatureItem(Icons.Default.Block, stringResource(R.string.ad_feature_no_data), Color(0xFFF59E0B))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -184,10 +186,10 @@ fun LoadingAdDialog(
                             .clickable { onDismissRequest() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Cancel", tint = Color(0xFFEF4444))
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel), tint = Color(0xFFEF4444))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Cancel", color = Color.Gray, fontSize = 14.sp)
+                    Text(stringResource(R.string.cancel), color = Color.Gray, fontSize = 14.sp)
                 }
             }
         }

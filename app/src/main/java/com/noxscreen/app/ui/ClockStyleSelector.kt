@@ -23,11 +23,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.noxscreen.app.R
 import com.noxscreen.app.ui.theme.ZenithCardBorder
 import com.noxscreen.app.ui.theme.ZenithTextMuted
 import kotlin.math.cos
@@ -78,7 +80,7 @@ fun ClockStyleSelector(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "AOD Clock Style",
+                text = stringResource(R.string.aod_clock_style),
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold

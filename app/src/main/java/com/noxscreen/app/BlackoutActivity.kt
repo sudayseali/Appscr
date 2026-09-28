@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,8 +51,13 @@ class BlackoutActivity : ComponentActivity() {
         } catch (e: Exception) {}
     }
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocaleHelper.applyLocale(this)
         
         val filter = IntentFilter("com.noxscreen.app.BIOMETRIC_SUCCESS")
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -111,7 +117,7 @@ class BlackoutActivity : ComponentActivity() {
                     } else {
                         if (isBiometricEnabled && !isBiometricReady) {
                             settings.updateConfig(settings.getConfig().copy(isBiometricEnabled = false, isAntiSpyEnabled = false))
-                            android.widget.Toast.makeText(this, "Taleefanka lagama helin Fingerprint ama PIN. Amniga waa la damiyay.", android.widget.Toast.LENGTH_LONG).show()
+                            android.widget.Toast.makeText(this, getString(R.string.biometric_disabled_fallback_toast), android.widget.Toast.LENGTH_LONG).show()
                         }
                         finish() 
                     }
@@ -268,7 +274,7 @@ fun UnlockScreenView(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "UNLOCK",
+                    text = stringResource(R.string.unlock_button_text),
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,

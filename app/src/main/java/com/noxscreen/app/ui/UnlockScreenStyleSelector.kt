@@ -11,9 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.noxscreen.app.R
 import com.noxscreen.app.ui.theme.*
 
 @Composable
@@ -22,9 +24,9 @@ fun UnlockScreenStyleSelector(
     onStyleSelected: (String) -> Unit
 ) {
     val styles = listOf(
-        Pair("button", "Button"),
-        Pair("swipe", "Swipe Up"),
-        Pair("icon", "Lock Icon")
+        Pair("button", stringResource(R.string.unlock_style_button)),
+        Pair("swipe", stringResource(R.string.unlock_style_swipe)),
+        Pair("icon", stringResource(R.string.unlock_style_icon))
     )
 
     Column(
@@ -33,7 +35,7 @@ fun UnlockScreenStyleSelector(
             .padding(vertical = 12.dp)
     ) {
         Text(
-            text = "Screen Unlock Style",
+            text = stringResource(R.string.screen_unlock_style),
             color = ZenithTextMuted,
             fontSize = 14.sp,
             modifier = Modifier.padding(bottom = 8.dp)

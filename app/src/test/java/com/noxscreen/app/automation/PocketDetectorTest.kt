@@ -183,4 +183,17 @@ class PocketDetectorTest {
             com.noxscreen.app.isBatteryOptimizationIgnored(context)
         )
     }
+
+    @Test
+    fun testUnityAdsLogSuppressionAndLocaleDefault() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        com.noxscreen.app.ads.UnityAdsManager.suppressUnityInternalErrorLogs()
+        val deviceLogClass = com.unity3d.services.core.log.DeviceLog::class.java
+        val logErrorField = deviceLogClass.getDeclaredField("LOG_ERROR").apply { isAccessible = true }
+        assertFalse("DeviceLog.LOG_ERROR must be false after suppressUnityInternalErrorLogs()", logErrorField.getBoolean(null))
+
+        val prefs = context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
+        prefs.edit().clear().commit()
+        assertEquals("en", com.noxscreen.app.LocaleHelper.getSavedLanguage(context))
+    }
 }

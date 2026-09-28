@@ -98,11 +98,16 @@ class BlackScreenService : Service() {
     private lateinit var smartAutomationManager: com.noxscreen.app.automation.SmartAutomationManager
     private lateinit var usageLimitMonitor: com.noxscreen.app.automation.UsageLimitMonitor
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.noxscreen.app.SETTINGS_UPDATED") {
+                LocaleHelper.applyLocale(this@BlackScreenService)
                 updateFloatingBubbleStyle()
                 applyUnlockButtonStyle()
                 if (::smartAutomationManager.isInitialized) {
@@ -125,6 +130,7 @@ class BlackScreenService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        LocaleHelper.applyLocale(this)
         
         val filter = IntentFilter("com.noxscreen.app.SETTINGS_UPDATED")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -239,8 +245,8 @@ class BlackScreenService : Service() {
         )
 
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("NoxScreen Pro Active")
-            .setContentText("Tap to stop")
+            .setContentTitle(getString(R.string.notification_active_title))
+            .setContentText(getString(R.string.notification_tap_to_stop))
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setContentIntent(pendingStopIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -375,7 +381,7 @@ class BlackScreenService : Service() {
 
         when (style) {
             "swipe" -> {
-                button.text = "SWIPE UP TO UNLOCK"
+                button.text = getString(R.string.swipe_up_to_unlock)
                 button.setTextColor(Color.WHITE)
                 button.textSize = 16f
                 button.background = null
@@ -413,7 +419,7 @@ class BlackScreenService : Service() {
                 }
             }
             else -> { // "button"
-                button.text = "UNLOCK"
+                button.text = getString(R.string.unlock_button_text)
                 button.setTextColor(Color.BLACK)
                 val bg = GradientDrawable()
                 bg.setColor(Color.WHITE)
@@ -591,7 +597,7 @@ class BlackScreenService : Service() {
                 showFloatingBubbleInternal()
                 android.widget.Toast.makeText(
                     this,
-                    "Taleefanka lagama helin Fingerprint/PIN. Shaashadda waa la furay.",
+                    getString(R.string.biometric_disabled_fallback_toast),
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             }

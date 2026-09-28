@@ -28,8 +28,13 @@ class BiometricAuthActivity : FragmentActivity() {
     private var isSuccess = false
     private var authTarget: String = "BLACKOUT" // or "APP_LOCK"
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocaleHelper.applyLocale(this)
         
         securityManager = AppSecurityManager(this)
         authTarget = intent.getStringExtra("AUTH_TARGET") ?: "BLACKOUT"
@@ -43,7 +48,7 @@ class BiometricAuthActivity : FragmentActivity() {
             
             Toast.makeText(
                 this, 
-                "Taleefanka lagama helin Fingerprint ama PIN. Amniga waa la damiyay.", 
+                getString(R.string.biometric_disabled_fallback_toast), 
                 Toast.LENGTH_LONG
             ).show()
 
@@ -67,7 +72,7 @@ class BiometricAuthActivity : FragmentActivity() {
             val remainingSec = securityManager.getRemainingLockoutSeconds()
             Toast.makeText(
                 this, 
-                "Amniga: Isku dayyo khaldan oo badan! Sug ${remainingSec}s ka hor intaadan isku dayin.",
+                getString(R.string.biometric_lockout_toast_format, remainingSec),
                 Toast.LENGTH_LONG
             ).show()
             setResult(Activity.RESULT_CANCELED)
@@ -150,24 +155,24 @@ class BiometricAuthActivity : FragmentActivity() {
                     val isLocked = securityManager.recordFailedAttempt()
                     if (isLocked) {
                         Toast.makeText(
-                            applicationContext, 
-                            "3 isku-day oo khaldan! App-ka waa la xannibay 30 ilbiriqsi.", 
+                            this@BiometricAuthActivity, 
+                            getString(R.string.biometric_3_failed_toast), 
                             Toast.LENGTH_LONG
                         ).show()
                         setResult(Activity.RESULT_CANCELED)
                         finish()
                     } else {
                         Toast.makeText(
-                            applicationContext, 
-                            "Xaqiijintu waa fashilantay. Isku day mar kale.", 
+                            this@BiometricAuthActivity, 
+                            getString(R.string.biometric_failed_try_again), 
                             Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
             })
 
-        val title = if (authTarget == "APP_LOCK") "NoxScreen App Lock" else "Unlock NoxScreen"
-        val subtitle = if (authTarget == "APP_LOCK") "Xaqiiji fartaada ama furaha taleefanka si aad u gasho app-ka" else "Use your biometric or device lock to unlock"
+        val title = if (authTarget == "APP_LOCK") getString(R.string.biometric_prompt_app_lock_title) else getString(R.string.biometric_prompt_unlock_title)
+        val subtitle = if (authTarget == "APP_LOCK") getString(R.string.biometric_prompt_app_lock_subtitle) else getString(R.string.biometric_prompt_unlock_subtitle)
 
         promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)

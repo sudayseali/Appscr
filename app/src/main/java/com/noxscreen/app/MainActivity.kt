@@ -56,18 +56,13 @@ import com.noxscreen.app.automation.AutomationConfig
 class MainActivity : ComponentActivity() {
     private lateinit var adsManager: com.noxscreen.app.ads.UnityAdsManager
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        val prefs = getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
-        val savedLang = prefs.getString("app_language", "en") ?: "en"
-        @Suppress("DEPRECATION")
-        val locale = java.util.Locale(savedLang)
-        java.util.Locale.setDefault(locale)
-        val config = resources.configuration
-        config.setLocale(locale)
-        @Suppress("DEPRECATION")
-        resources.updateConfiguration(config, resources.displayMetrics)
+        LocaleHelper.applyLocale(this)
         
         adsManager = com.noxscreen.app.ads.UnityAdsManager(this)
         adsManager.initialize()
@@ -158,14 +153,14 @@ class MainActivity : ComponentActivity() {
                                 }
                                 Spacer(modifier = Modifier.height(20.dp))
                                 Text(
-                                    text = "NoxScreen Is Locked",
+                                    text = stringResource(R.string.app_locked_title),
                                     color = Color.White,
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Authentication required to access app settings",
+                                    text = stringResource(R.string.app_locked_subtitle),
                                     color = Color.White.copy(alpha = 0.65f),
                                     fontSize = 14.sp,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -190,7 +185,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Unlock App",
+                                        text = stringResource(R.string.unlock_app),
                                         color = Color(0xFF020612),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp
@@ -497,7 +492,7 @@ fun ZenithApp(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isServiceRunning) "ACTIVE" else "PROTECTED",
+                                text = if (isServiceRunning) stringResource(R.string.status_active) else stringResource(R.string.status_protected),
                                 color = if (isServiceRunning) Color(0xFF00E676) else Color(0xFFFFB300),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -574,13 +569,13 @@ fun ZenithApp(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Widget",
+                        text = stringResource(R.string.widget_label),
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = if (isFloatingOn) "ON" else "OFF",
+                        text = if (isFloatingOn) stringResource(R.string.state_on) else stringResource(R.string.state_off),
                         color = floatIconTint,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -591,7 +586,7 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = if (isServiceRunning) "Tap to wake screen" else "Tap to sleep screen",
+                text = if (isServiceRunning) stringResource(R.string.tap_to_wake_screen) else stringResource(R.string.tap_to_sleep_screen),
                 color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -647,12 +642,18 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Expandable Settings Cards
+            val displayActiveCount = listOf(
+                autoConfig.isAodEnabled,
+                autoConfig.oledBurnInProtection,
+                autoConfig.isSkipUnlockScreenEnabled
+            ).count { it }
+
             ExpandableConfigSection(
                 title = stringResource(R.string.display_settings),
-                subtitle = "Customize screen behaviour & lock style",
+                subtitle = stringResource(R.string.display_settings_subtitle),
                 icon = Icons.Default.DisplaySettings,
                 iconColor = ZenithAccent,
-                badgeText = "3 Active",
+                badgeText = stringResource(R.string.active_count_format, displayActiveCount),
                 badgeColor = ZenithAccent,
                 isExpanded = false
             ) {
@@ -660,7 +661,7 @@ fun ZenithApp(
 
                 SmartTriggerCard(
                     title = stringResource(R.string.always_on_display),
-                    subtitle = "Show clock & subtle notifications on dark screen",
+                    subtitle = stringResource(R.string.always_on_display_subtitle),
                     icon = Icons.Default.Schedule,
                     iconTint = Color(0xFF00E676),
                     checked = autoConfig.isAodEnabled,
@@ -697,7 +698,7 @@ fun ZenithApp(
 
                 SmartTriggerCard(
                     title = stringResource(R.string.oled_pixel_shift),
-                    subtitle = "Prevent screen burn-in with micro shifts",
+                    subtitle = stringResource(R.string.oled_pixel_shift_subtitle),
                     icon = Icons.Default.Grain,
                     iconTint = Color(0xFFFFB300),
                     checked = autoConfig.oledBurnInProtection,
@@ -711,7 +712,7 @@ fun ZenithApp(
 
                 SmartTriggerCard(
                     title = stringResource(R.string.skip_unlock_screen),
-                    subtitle = "Directly unlock device on tap gesture",
+                    subtitle = stringResource(R.string.skip_unlock_screen_subtitle),
                     icon = Icons.Default.LockOpen,
                     iconTint = Color(0xFFAB47BC),
                     checked = autoConfig.isSkipUnlockScreenEnabled,
@@ -738,19 +739,24 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
 
             val sensorHandler = remember { com.noxscreen.app.automation.SensorHandler(context) }
+            val triggersActiveCount = listOf(
+                autoConfig.isPocketModeEnabled,
+                autoConfig.isShakeToWakeEnabled,
+                !autoConfig.hideFloatingButton
+            ).count { it } + 1
 
             ExpandableConfigSection(
                 title = stringResource(R.string.smart_triggers),
-                subtitle = "Auto actions based on motion sensors",
+                subtitle = stringResource(R.string.smart_triggers_subtitle),
                 icon = Icons.Default.Sensors,
                 iconColor = ZenithSecondary,
-                badgeText = "4 Active",
+                badgeText = stringResource(R.string.active_count_format, triggersActiveCount),
                 badgeColor = ZenithSecondary,
                 isExpanded = false
             ) {
                 SmartTriggerCard(
                     title = stringResource(R.string.pocket_mode),
-                    subtitle = "Auto-lock in pocket",
+                    subtitle = stringResource(R.string.pocket_mode_subtitle),
                     icon = Icons.Default.Smartphone,
                     iconTint = Color(0xFF00E676),
                     checked = autoConfig.isPocketModeEnabled,
@@ -758,7 +764,7 @@ fun ZenithApp(
                         if (enabled && !sensorHandler.hasProximitySensor()) {
                             android.widget.Toast.makeText(
                                 context,
-                                "Proximity sensor not available on this device.",
+                                context.getString(R.string.proximity_not_available),
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         } else {
@@ -772,7 +778,7 @@ fun ZenithApp(
 
                 SmartTriggerCard(
                     title = stringResource(R.string.shake_to_wake),
-                    subtitle = "Shake to unlock",
+                    subtitle = stringResource(R.string.shake_to_wake_subtitle),
                     icon = Icons.Default.Vibration,
                     iconTint = Color(0xFF00E5FF),
                     checked = autoConfig.isShakeToWakeEnabled,
@@ -780,7 +786,7 @@ fun ZenithApp(
                         if (enabled && !sensorHandler.hasAccelerometerSensor()) {
                             android.widget.Toast.makeText(
                                 context,
-                                "Accelerometer sensor not available on this device.",
+                                context.getString(R.string.accelerometer_not_available),
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         } else {
@@ -794,7 +800,7 @@ fun ZenithApp(
 
                 SmartTriggerCard(
                     title = stringResource(R.string.floating_action_button),
-                    subtitle = "Quick access button",
+                    subtitle = stringResource(R.string.floating_action_button_subtitle),
                     icon = Icons.Default.TouchApp,
                     iconTint = Color(0xFFFFB300),
                     checked = !autoConfig.hideFloatingButton,
@@ -998,7 +1004,7 @@ fun ZenithApp(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "$taps ${if (taps == 1) "Tap" else "Taps"}",
+                                text = if (taps == 1) stringResource(R.string.one_tap) else stringResource(R.string.multiple_taps_format, taps),
                                 color = if (isSelected) Color(0xFF020612) else Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -1035,10 +1041,10 @@ fun ZenithApp(
 
             ExpandableConfigSection(
                 title = stringResource(R.string.security),
-                subtitle = "Biometric, PIN & Screen Security",
+                subtitle = stringResource(R.string.security_subtitle),
                 icon = Icons.Default.Security,
                 iconColor = ZenithCyan,
-                badgeText = if (autoConfig.isBiometricEnabled) "Active" else "Disabled",
+                badgeText = if (autoConfig.isBiometricEnabled) stringResource(R.string.status_active_short) else stringResource(R.string.status_disabled),
                 badgeColor = if (autoConfig.isBiometricEnabled) Color(0xFF00E676) else ZenithCyan,
                 isExpanded = false
             ) {
@@ -1077,16 +1083,16 @@ fun ZenithApp(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = if (isBiometricReady) "Fingerprint & Device Lock Ready"
-                                       else if (biometricStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.NONE_ENROLLED) "No Fingerprint/PIN Enrolled"
-                                       else "Device Security Not Configured",
+                                text = if (isBiometricReady) stringResource(R.string.biometric_ready_title)
+                                       else if (biometricStatus == com.noxscreen.app.security.AppSecurityManager.BiometricStatus.NONE_ENROLLED) stringResource(R.string.biometric_none_enrolled_title)
+                                       else stringResource(R.string.biometric_not_configured_title),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = if (isBiometricReady) "Use Fingerprint, Face or Phone PIN/Password to unlock"
-                                       else "Tap here to set up Fingerprint or PIN in Android Settings",
+                                text = if (isBiometricReady) stringResource(R.string.biometric_ready_subtitle)
+                                       else stringResource(R.string.biometric_setup_subtitle),
                                 color = Color.White.copy(alpha = 0.65f),
                                 fontSize = 11.sp
                             )
@@ -1098,8 +1104,8 @@ fun ZenithApp(
 
                 // Single unified security switch
                 ZenithSwitchRow(
-                    title = "Screen & App Security Lock",
-                    subtitle = "Require Fingerprint or Phone PIN to unlock screen. Mobile stays completely black until unlocked.",
+                    title = stringResource(R.string.screen_security_lock_title),
+                    subtitle = stringResource(R.string.screen_security_lock_subtitle),
                     checked = autoConfig.isBiometricEnabled
                 ) { isChecked ->
                     if (isChecked) {
@@ -1108,7 +1114,7 @@ fun ZenithApp(
                         if (freshStatus != com.noxscreen.app.security.AppSecurityManager.BiometricStatus.AVAILABLE) {
                             android.widget.Toast.makeText(
                                 context,
-                                "Taleefankaaga lagama helin Fingerprint ama PIN. Fadlan marka hore ka samayso Settings-ka taleefanka.",
+                                context.getString(R.string.biometric_not_enrolled_toast),
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                             try {
@@ -1129,12 +1135,12 @@ fun ZenithApp(
             Spacer(modifier = Modifier.height(16.dp))
 
             ExpandableConfigSection(
-                title = "Focus Mode",
-                subtitle = "App limits & distraction controls",
+                title = stringResource(R.string.focus_mode),
+                subtitle = stringResource(R.string.focus_mode_subtitle),
                 icon = Icons.Default.GpsFixed,
                 iconColor = Color(0xFFFF9800),
-                badgeText = "Limits Off",
-                badgeColor = Color(0xFFFF9800),
+                badgeText = if (autoConfig.isScheduleEnabled) stringResource(R.string.status_active_short) else stringResource(R.string.limits_off),
+                badgeColor = if (autoConfig.isScheduleEnabled) Color(0xFF00E676) else Color(0xFFFF9800),
                 isExpanded = false
             ) {
                 val lifecycleOwner = LocalLifecycleOwner.current
@@ -1171,13 +1177,13 @@ fun ZenithApp(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     ) {
-                        Text("Grant Usage Access", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.grant_usage_access), color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 } else {
                     
                     ZenithSwitchRow(
-                        title = "Enable Schedule Limits",
-                        subtitle = "Lock distraction apps during scheduled times",
+                        title = stringResource(R.string.enable_schedule_limits),
+                        subtitle = stringResource(R.string.enable_schedule_limits_subtitle),
                         checked = autoConfig.isScheduleEnabled
                     ) {
                         autoConfig = autoConfig.copy(isScheduleEnabled = it)
@@ -1187,7 +1193,7 @@ fun ZenithApp(
                     if (autoConfig.isScheduleEnabled) {
                         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
-                                Text("Start Time", color = ZenithTextMuted, fontSize = 12.sp)
+                                Text(stringResource(R.string.start_time), color = ZenithTextMuted, fontSize = 12.sp)
                                 Button(
                                     onClick = {
                                         android.app.TimePickerDialog(
@@ -1212,7 +1218,7 @@ fun ZenithApp(
                                 }
                             }
                             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                                Text("End Time", color = ZenithTextMuted, fontSize = 12.sp)
+                                Text(stringResource(R.string.end_time), color = ZenithTextMuted, fontSize = 12.sp)
                                 Button(
                                     onClick = {
                                         android.app.TimePickerDialog(
@@ -1261,7 +1267,7 @@ fun ZenithApp(
                             modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
                         ) {
                             Text(
-                                text = "Select Apps to Block",
+                                text = stringResource(R.string.select_apps_to_block),
                                 color = ZenithAccent,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1269,7 +1275,7 @@ fun ZenithApp(
 
                         if (autoConfig.blockedApps.isNotEmpty()) {
                             Text(
-                                text = "Blocked: ${autoConfig.blockedApps.size} apps",
+                                text = stringResource(R.string.blocked_apps_count_format, autoConfig.blockedApps.size),
                                 color = ZenithTextMuted,
                                 fontSize = 11.sp,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -1846,7 +1852,7 @@ fun GamificationSection(totalTimeSaved: Long) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Level $level",
+                                text = "${stringResource(R.string.level)} $level",
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold
@@ -1867,7 +1873,7 @@ fun GamificationSection(totalTimeSaved: Long) {
                             }
                         }
                         Text(
-                            text = "${String.format("%.1f", totalHours)} Hours Saved Total",
+                            text = stringResource(R.string.hours_saved_total_format, String.format("%.1f", totalHours)),
                             color = Color(0xFF94A3B8),
                             fontSize = 12.sp,
                             modifier = Modifier.padding(top = 2.dp)
@@ -1885,7 +1891,7 @@ fun GamificationSection(totalTimeSaved: Long) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Progress to Level ${level + 1}",
+                        text = stringResource(R.string.progress_to_level_format, level + 1),
                         color = Color(0xFF94A3B8),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -2113,7 +2119,7 @@ fun SplashScreen() {
                 letterSpacing = 6.sp
             )
             Text(
-                text = "ECO SCREEN OPTIMIZER",
+                text = stringResource(R.string.eco_screen_optimizer),
                 color = ZenithAccent,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
@@ -2134,34 +2140,7 @@ fun SplashScreen() {
 fun LanguageRow() {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
-    
-    val languages = listOf(
-        "en" to "English",
-        "so" to "Somali",
-        "ar" to "العربية",
-        "bn" to "বাংলা",
-        "zh" to "中文",
-        "es" to "Español",
-        "fr" to "Français",
-        "de" to "Deutsch",
-        "hi" to "हिन्दी",
-        "id" to "Bahasa Indonesia",
-        "it" to "Italiano",
-        "ja" to "日本語",
-        "ko" to "한국어",
-        "mr" to "मराठी",
-        "pa" to "ਪੰਜਾਬੀ",
-        "pt" to "Português",
-        "ru" to "Русский",
-        "te" to "తెలుగు",
-        "tr" to "Türkçe",
-        "ur" to "اردو",
-        "vi" to "Tiếng Việt",
-        "sw" to "Kiswahili",
-        "fa" to "فارسی",
-        "ta" to "தமிழ்",
-        "gu" to "ગુજરાતી"
-    )
+    val languages = LocaleHelper.SUPPORTED_LANGUAGES
 
     Row(
         modifier = Modifier
@@ -2221,20 +2200,7 @@ fun LanguageRow() {
 }
 
 fun setAppLocale(context: Context, languageCode: String) {
-    val prefs = context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
-    prefs.edit().putString("app_language", languageCode).apply()
-    
-    @Suppress("DEPRECATION")
-    val locale = java.util.Locale(languageCode)
-    java.util.Locale.setDefault(locale)
-    val resources = context.resources
-    val config = resources.configuration
-    config.setLocale(locale)
-    @Suppress("DEPRECATION")
-    resources.updateConfiguration(config, resources.displayMetrics)
-    if (context is android.app.Activity) {
-        context.recreate()
-    }
+    LocaleHelper.setNewLocale(context, languageCode)
 }
 
 @Composable
@@ -2463,37 +2429,9 @@ fun FloatingButtonGraphic() {
 fun LanguageCard() {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
-    
-    val languages = listOf(
-        "en" to "English",
-        "so" to "Somali",
-        "ar" to "العربية",
-        "bn" to "বাংলা",
-        "zh" to "中文",
-        "es" to "Español",
-        "fr" to "Français",
-        "de" to "Deutsch",
-        "hi" to "हिन्दी",
-        "id" to "Bahasa Indonesia",
-        "it" to "Italiano",
-        "ja" to "日本語",
-        "ko" to "한국어",
-        "mr" to "मराठी",
-        "pa" to "ਪੰਜਾਬੀ",
-        "pt" to "Português",
-        "ru" to "Русский",
-        "te" to "తెలుగు",
-        "tr" to "Türkçe",
-        "ur" to "اردو",
-        "vi" to "Tiếng Việt",
-        "sw" to "Kiswahili",
-        "fa" to "فارسی",
-        "ta" to "தமிழ்",
-        "gu" to "ગુજરાતી"
-    )
+    val languages = LocaleHelper.SUPPORTED_LANGUAGES
 
-    val currentCode = context.getSharedPreferences("BlackScreenStats", Context.MODE_PRIVATE)
-        .getString("app_language", "en") ?: "en"
+    val currentCode = LocaleHelper.getSavedLanguage(context)
     val currentName = languages.find { it.first == currentCode }?.second ?: "English"
 
     Card(

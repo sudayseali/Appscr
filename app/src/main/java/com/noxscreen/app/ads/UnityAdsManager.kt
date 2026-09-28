@@ -2,12 +2,20 @@ package com.noxscreen.app.ads
 
 import android.app.Activity
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.unity3d.ads.IUnityAdsInitializationListener
 import com.unity3d.ads.IUnityAdsLoadListener
 import com.unity3d.ads.IUnityAdsShowListener
 import com.unity3d.ads.UnityAds
 import com.unity3d.ads.UnityAdsShowOptions
+import com.unity3d.services.core.log.DeviceLog
+import com.unity3d.services.core.log.DeviceLogLevel
+import java.net.InetAddress
+import java.util.concurrent.Executors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,12 +24,13 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
 
     companion object {
         private const val TAG = "UnityAdsManager"
+        private const val UNITY_AUCTION_HOST = "auction-banner.unityads.unity3d.com"
 
         const val GAME_ID = "5990107"
 
-        // Support both legacy and Unity LevelPlay Ad Unit IDs configured in Unity Dashboard
-        private val REWARDED_PLACEMENTS = listOf("rewardedVideo", "Rewarded_Android")
-        private val INTERSTITIAL_PLACEMENTS = listOf("interstitialVideo", "Interstitial_Android")
+        // Prioritize standard Unity LevelPlay Android Ad Unit IDs configured in Unity Dashboard
+        private val REWARDED_PLACEMENTS = listOf("Rewarded_Android", "rewardedVideo")
+        private val INTERSTITIAL_PLACEMENTS = listOf("Interstitial_Android", "interstitialVideo")
 
         private val _isInitializedFlow = MutableStateFlow(UnityAds.isInitialized)
         val isInitializedFlow: StateFlow<Boolean> = _isInitializedFlow.asStateFlow()
@@ -31,6 +40,67 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
 
         @Volatile
         private var loadedInterstitialPlacementId: String? = null
+
+        @Volatile
+        private var isInitializing = false
+
+        private val dnsExecutor = Executors.newSingleThreadExecutor()
+        private val mainHandler = Handler(Looper.getMainLooper())
+
+        /**
+         * Prevents Unity Ads SDK internal DeviceLog from emitting Log.e("UnityAds", ...)
+         * for normal operational events such as "No fill" or unreachable auction hosts.
+         */
+        fun suppressUnityInternalErrorLogs() {
+            try {
+                DeviceLog.setLogLevel(0)
+            } catch (_: Throwable) {}
+
+            try {
+                val deviceLogClass = DeviceLog::class.java
+                for (fieldName in listOf("LOG_ERROR", "LOG_WARNING", "LOG_INFO", "LOG_DEBUG")) {
+                    try {
+                        val field = deviceLogClass.getDeclaredField(fieldName)
+                        field.isAccessible = true
+                        field.setBoolean(null, false)
+                    } catch (_: Throwable) {}
+                }
+                try {
+                    val mapField = deviceLogClass.getDeclaredField("_deviceLogLevel")
+                    mapField.isAccessible = true
+                    val map = mapField.get(null) as? Map<*, *>
+                    val methodField = DeviceLogLevel::class.java.getDeclaredField("_receivingMethodName")
+                    methodField.isAccessible = true
+                    map?.values?.forEach { levelObj ->
+                        if (levelObj is DeviceLogLevel) {
+                            methodField.set(levelObj, "d")
+                        }
+                    }
+                } catch (_: Throwable) {}
+            } catch (_: Throwable) {}
+        }
+
+        fun isNetworkAvailable(context: Context): Boolean {
+            return try {
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                    ?: return false
+                val network = cm.activeNetwork ?: return false
+                val caps = cm.getNetworkCapabilities(network) ?: return false
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            } catch (_: Throwable) {
+                false
+            }
+        }
+
+        fun isUnityEndpointReachable(context: Context): Boolean {
+            if (!isNetworkAvailable(context)) return false
+            return try {
+                val addresses = InetAddress.getAllByName(UNITY_AUCTION_HOST)
+                addresses != null && addresses.isNotEmpty()
+            } catch (_: Throwable) {
+                false
+            }
+        }
     }
 
     private val testMode = false
@@ -42,22 +112,53 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     private val initCallbacks = mutableListOf<() -> Unit>()
 
     fun initialize(onComplete: (() -> Unit)? = null) {
+        suppressUnityInternalErrorLogs()
         if (onComplete != null) {
             initCallbacks.add(onComplete)
         }
 
-        try {
-            if (UnityAds.isInitialized) {
-                _isInitializedFlow.value = true
-                flushInitCallbacks()
-                preloadAllAds()
-            } else {
-                // Pass Activity context directly so Unity Ads ClientProperties.getActivity() is set for BannerView
-                UnityAds.initialize(context, GAME_ID, testMode, this)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Unity Ads initialization exception: ${e.message}")
+        if (!isNetworkAvailable(context)) {
             flushInitCallbacks()
+            return
+        }
+
+        if (UnityAds.isInitialized) {
+            suppressUnityInternalErrorLogs()
+            _isInitializedFlow.value = true
+            flushInitCallbacks()
+            preloadAllAds()
+            return
+        }
+
+        if (isInitializing) return
+        isInitializing = true
+
+        dnsExecutor.execute {
+            val reachable = isUnityEndpointReachable(context)
+            mainHandler.post {
+                isInitializing = false
+                if (!reachable) {
+                    Log.d(TAG, "Unity Ads endpoint not reachable in current network environment; skipping init")
+                    flushInitCallbacks()
+                    return@post
+                }
+                try {
+                    if (UnityAds.isInitialized) {
+                        suppressUnityInternalErrorLogs()
+                        _isInitializedFlow.value = true
+                        flushInitCallbacks()
+                        preloadAllAds()
+                    } else {
+                        suppressUnityInternalErrorLogs()
+                        // Pass Activity context directly so Unity Ads ClientProperties.getActivity() is set for BannerView
+                        UnityAds.initialize(context, GAME_ID, testMode, this)
+                        suppressUnityInternalErrorLogs()
+                    }
+                } catch (e: Exception) {
+                    Log.d(TAG, "Unity Ads initialization exception: ${e.message}")
+                    flushInitCallbacks()
+                }
+            }
         }
     }
 
@@ -68,6 +169,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     }
 
     override fun onInitializationComplete() {
+        suppressUnityInternalErrorLogs()
         Log.d(TAG, "Unity Ads Initialization Complete")
         _isInitializedFlow.value = true
         preloadAllAds()
@@ -75,12 +177,14 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     }
 
     override fun onInitializationFailed(error: UnityAds.UnityAdsInitializationError?, message: String?) {
-        Log.w(TAG, "Unity Ads Initialization Failed: $error - $message")
+        suppressUnityInternalErrorLogs()
+        Log.d(TAG, "Unity Ads Initialization Failed: $error - $message")
         flushInitCallbacks()
     }
 
     private fun preloadAllAds() {
-        if (!UnityAds.isInitialized) return
+        suppressUnityInternalErrorLogs()
+        if (!UnityAds.isInitialized || !isNetworkAvailable(context)) return
         preloadRewardedWithFallback(0)
         preloadInterstitialWithFallback(0)
     }
@@ -90,7 +194,8 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
         onLoaded: ((String) -> Unit)? = null,
         onAllFailed: (() -> Unit)? = null
     ) {
-        if (!UnityAds.isInitialized) {
+        suppressUnityInternalErrorLogs()
+        if (!UnityAds.isInitialized || !isNetworkAvailable(context)) {
             onAllFailed?.invoke()
             return
         }
@@ -102,6 +207,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
         try {
             UnityAds.load(placementId, object : IUnityAdsLoadListener {
                 override fun onUnityAdsAdLoaded(loadedId: String) {
+                    suppressUnityInternalErrorLogs()
                     Log.d(TAG, "Rewarded Ad Loaded: $loadedId")
                     loadedRewardedPlacementId = loadedId
                     onLoaded?.invoke(loadedId)
@@ -112,22 +218,25 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
                     error: UnityAds.UnityAdsLoadError,
                     message: String
                 ) {
-                    Log.w(TAG, "Rewarded Ad Failed to load ($failedId): $error - $message")
+                    suppressUnityInternalErrorLogs()
+                    Log.d(TAG, "Rewarded Ad Failed to load ($failedId): $error - $message")
                     preloadRewardedWithFallback(index + 1, onLoaded, onAllFailed)
                 }
             })
         } catch (e: Exception) {
-            Log.w(TAG, "Rewarded Ad load exception: ${e.message}")
+            Log.d(TAG, "Rewarded Ad load exception: ${e.message}")
             preloadRewardedWithFallback(index + 1, onLoaded, onAllFailed)
         }
     }
 
     private fun preloadInterstitialWithFallback(index: Int) {
-        if (!UnityAds.isInitialized || index >= INTERSTITIAL_PLACEMENTS.size) return
+        suppressUnityInternalErrorLogs()
+        if (!UnityAds.isInitialized || !isNetworkAvailable(context) || index >= INTERSTITIAL_PLACEMENTS.size) return
         val placementId = INTERSTITIAL_PLACEMENTS[index]
         try {
             UnityAds.load(placementId, object : IUnityAdsLoadListener {
                 override fun onUnityAdsAdLoaded(loadedId: String) {
+                    suppressUnityInternalErrorLogs()
                     Log.d(TAG, "Interstitial Ad Loaded: $loadedId")
                     loadedInterstitialPlacementId = loadedId
                 }
@@ -137,17 +246,19 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
                     error: UnityAds.UnityAdsLoadError,
                     message: String
                 ) {
-                    Log.w(TAG, "Interstitial Ad Failed to load ($failedId): $error - $message")
+                    suppressUnityInternalErrorLogs()
+                    Log.d(TAG, "Interstitial Ad Failed to load ($failedId): $error - $message")
                     preloadInterstitialWithFallback(index + 1)
                 }
             })
         } catch (e: Exception) {
-            Log.w(TAG, "Interstitial load exception: ${e.message}")
+            Log.d(TAG, "Interstitial load exception: ${e.message}")
             preloadInterstitialWithFallback(index + 1)
         }
     }
 
     fun showMultipleRewardedAds(activity: Activity, remainingAds: Int, onComplete: () -> Unit) {
+        suppressUnityInternalErrorLogs()
         if (remainingAds <= 0 || !UnityAds.isInitialized) {
             onComplete()
             return
@@ -160,7 +271,8 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
                 error: UnityAds.UnityAdsShowError,
                 message: String
             ) {
-                Log.w(TAG, "Rewarded Ad Failed to show: $error - $message")
+                suppressUnityInternalErrorLogs()
+                Log.d(TAG, "Rewarded Ad Failed to show: $error - $message")
                 showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
             }
 
@@ -181,6 +293,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     }
 
     fun showRewardedAd(activity: Activity, onComplete: () -> Unit) {
+        suppressUnityInternalErrorLogs()
         if (!UnityAds.isInitialized) {
             onComplete()
             return
@@ -193,7 +306,8 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
                 error: UnityAds.UnityAdsShowError,
                 message: String
             ) {
-                Log.w(TAG, "Rewarded Ad Failed to show: $error - $message")
+                suppressUnityInternalErrorLogs()
+                Log.d(TAG, "Rewarded Ad Failed to show: $error - $message")
                 onComplete()
             }
 
@@ -219,6 +333,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
         onSuccess: () -> Unit,
         onFailed: (String) -> Unit
     ): () -> Unit {
+        suppressUnityInternalErrorLogs()
         var isCancelled = false
 
         val loadAndShow = {
@@ -301,12 +416,14 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
         onSuccess: () -> Unit,
         onFailed: (String) -> Unit
     ) {
+        suppressUnityInternalErrorLogs()
         UnityAds.show(activity, placementId, UnityAdsShowOptions(), object : IUnityAdsShowListener {
             override fun onUnityAdsShowFailure(
                 id: String,
                 error: UnityAds.UnityAdsShowError,
                 message: String
             ) {
+                suppressUnityInternalErrorLogs()
                 loadedRewardedPlacementId = null
                 if (!isCancelled()) {
                     onFailed("Failed to show ad. Please try again.")
@@ -323,6 +440,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
                 id: String,
                 state: UnityAds.UnityAdsShowCompletionState
             ) {
+                suppressUnityInternalErrorLogs()
                 if (!isCancelled()) {
                     if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) {
                         onSuccess()
@@ -344,16 +462,22 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     }
 
     private fun showInterstitialAd(activity: Activity) {
+        suppressUnityInternalErrorLogs()
         if (!UnityAds.isInitialized) return
 
-        val placementToUse = loadedInterstitialPlacementId ?: INTERSTITIAL_PLACEMENTS.first()
+        val placementToUse = loadedInterstitialPlacementId
+        if (placementToUse == null) {
+            preloadInterstitialWithFallback(0)
+            return
+        }
         UnityAds.show(activity, placementToUse, UnityAdsShowOptions(), object : IUnityAdsShowListener {
             override fun onUnityAdsShowFailure(
                 placementId: String,
                 error: UnityAds.UnityAdsShowError,
                 message: String
             ) {
-                Log.w(TAG, "Interstitial Ad Failed to show: $error - $message")
+                suppressUnityInternalErrorLogs()
+                Log.d(TAG, "Interstitial Ad Failed to show: $error - $message")
                 loadedInterstitialPlacementId = null
                 preloadInterstitialWithFallback(0)
             }
@@ -369,6 +493,7 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
                 placementId: String,
                 state: UnityAds.UnityAdsShowCompletionState
             ) {
+                suppressUnityInternalErrorLogs()
                 Log.d(TAG, "Interstitial Ad Completed with state: $state")
                 preloadInterstitialWithFallback(0)
             }
