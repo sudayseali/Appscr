@@ -8,90 +8,173 @@ import com.unity3d.ads.IUnityAdsLoadListener
 import com.unity3d.ads.IUnityAdsShowListener
 import com.unity3d.ads.UnityAds
 import com.unity3d.ads.UnityAdsShowOptions
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class UnityAdsManager(private val context: Context) : IUnityAdsInitializationListener {
 
-    private val TAG = "UnityAdsManager"
-    
-    // Replace these with your actual Unity Game ID and Ad Unit IDs
-    private val GAME_ID = "5990107"
-    private val REWARDED_AD_UNIT_ID = "rewardedVideo"
-    private val INTERSTITIAL_AD_UNIT_ID = "interstitialVideo"
+    companion object {
+        private const val TAG = "UnityAdsManager"
+
+        const val GAME_ID = "5990107"
+
+        // Support both legacy and Unity LevelPlay Ad Unit IDs configured in Unity Dashboard
+        private val REWARDED_PLACEMENTS = listOf("rewardedVideo", "Rewarded_Android")
+        private val INTERSTITIAL_PLACEMENTS = listOf("interstitialVideo", "Interstitial_Android")
+
+        private val _isInitializedFlow = MutableStateFlow(UnityAds.isInitialized)
+        val isInitializedFlow: StateFlow<Boolean> = _isInitializedFlow.asStateFlow()
+
+        @Volatile
+        private var loadedRewardedPlacementId: String? = null
+
+        @Volatile
+        private var loadedInterstitialPlacementId: String? = null
+    }
+
     private val testMode = false
 
     // State for controlling interstitial frequency
     private var stopCounter = 0
     private val SHOW_INTERSTITIAL_EVERY = 1
 
-    private var onInitComplete: (() -> Unit)? = null
-    
+    private val initCallbacks = mutableListOf<() -> Unit>()
+
     fun initialize(onComplete: (() -> Unit)? = null) {
-        onInitComplete = onComplete
-        if (!UnityAds.isInitialized) {
-            UnityAds.initialize(context, GAME_ID, testMode, this)
-        } else {
-            onInitComplete?.invoke()
-            onInitComplete = null
-            loadAd(REWARDED_AD_UNIT_ID)
-            loadAd(INTERSTITIAL_AD_UNIT_ID)
+        if (onComplete != null) {
+            initCallbacks.add(onComplete)
         }
+
+        try {
+            if (UnityAds.isInitialized) {
+                _isInitializedFlow.value = true
+                flushInitCallbacks()
+                preloadAllAds()
+            } else {
+                // Pass Activity context directly so Unity Ads ClientProperties.getActivity() is set for BannerView
+                UnityAds.initialize(context, GAME_ID, testMode, this)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Unity Ads initialization exception: ${e.message}")
+            flushInitCallbacks()
+        }
+    }
+
+    private fun flushInitCallbacks() {
+        val callbacks = ArrayList(initCallbacks)
+        initCallbacks.clear()
+        callbacks.forEach { it.invoke() }
     }
 
     override fun onInitializationComplete() {
         Log.d(TAG, "Unity Ads Initialization Complete")
-        loadAd(REWARDED_AD_UNIT_ID)
-        loadAd(INTERSTITIAL_AD_UNIT_ID)
-        onInitComplete?.invoke()
-        onInitComplete = null
+        _isInitializedFlow.value = true
+        preloadAllAds()
+        flushInitCallbacks()
     }
 
     override fun onInitializationFailed(error: UnityAds.UnityAdsInitializationError?, message: String?) {
-        Log.e(TAG, "Unity Ads Initialization Failed: $error - $message")
-        onInitComplete?.invoke()
-        onInitComplete = null
+        Log.w(TAG, "Unity Ads Initialization Failed: $error - $message")
+        flushInitCallbacks()
     }
 
-    private fun loadAd(adUnitId: String) {
+    private fun preloadAllAds() {
         if (!UnityAds.isInitialized) return
-        UnityAds.load(adUnitId, object : IUnityAdsLoadListener {
-            override fun onUnityAdsAdLoaded(placementId: String) {
-                Log.d(TAG, "Ad Loaded: $placementId")
-            }
-
-            override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String) {
-                Log.e(TAG, "Ad Failed to load: $placementId - $error - $message")
-            }
-        })
+        preloadRewardedWithFallback(0)
+        preloadInterstitialWithFallback(0)
     }
 
-    /**
-     * Shows a rewarded ad. Triggers [onComplete] regardless of whether the ad was watched successfully, skipped, or failed.
-     * This ensures the app flow is not blocked.
-     */
+    private fun preloadRewardedWithFallback(
+        index: Int,
+        onLoaded: ((String) -> Unit)? = null,
+        onAllFailed: (() -> Unit)? = null
+    ) {
+        if (!UnityAds.isInitialized) {
+            onAllFailed?.invoke()
+            return
+        }
+        if (index >= REWARDED_PLACEMENTS.size) {
+            onAllFailed?.invoke()
+            return
+        }
+        val placementId = REWARDED_PLACEMENTS[index]
+        try {
+            UnityAds.load(placementId, object : IUnityAdsLoadListener {
+                override fun onUnityAdsAdLoaded(loadedId: String) {
+                    Log.d(TAG, "Rewarded Ad Loaded: $loadedId")
+                    loadedRewardedPlacementId = loadedId
+                    onLoaded?.invoke(loadedId)
+                }
+
+                override fun onUnityAdsFailedToLoad(
+                    failedId: String,
+                    error: UnityAds.UnityAdsLoadError,
+                    message: String
+                ) {
+                    Log.w(TAG, "Rewarded Ad Failed to load ($failedId): $error - $message")
+                    preloadRewardedWithFallback(index + 1, onLoaded, onAllFailed)
+                }
+            })
+        } catch (e: Exception) {
+            Log.w(TAG, "Rewarded Ad load exception: ${e.message}")
+            preloadRewardedWithFallback(index + 1, onLoaded, onAllFailed)
+        }
+    }
+
+    private fun preloadInterstitialWithFallback(index: Int) {
+        if (!UnityAds.isInitialized || index >= INTERSTITIAL_PLACEMENTS.size) return
+        val placementId = INTERSTITIAL_PLACEMENTS[index]
+        try {
+            UnityAds.load(placementId, object : IUnityAdsLoadListener {
+                override fun onUnityAdsAdLoaded(loadedId: String) {
+                    Log.d(TAG, "Interstitial Ad Loaded: $loadedId")
+                    loadedInterstitialPlacementId = loadedId
+                }
+
+                override fun onUnityAdsFailedToLoad(
+                    failedId: String,
+                    error: UnityAds.UnityAdsLoadError,
+                    message: String
+                ) {
+                    Log.w(TAG, "Interstitial Ad Failed to load ($failedId): $error - $message")
+                    preloadInterstitialWithFallback(index + 1)
+                }
+            })
+        } catch (e: Exception) {
+            Log.w(TAG, "Interstitial load exception: ${e.message}")
+            preloadInterstitialWithFallback(index + 1)
+        }
+    }
+
     fun showMultipleRewardedAds(activity: Activity, remainingAds: Int, onComplete: () -> Unit) {
         if (remainingAds <= 0 || !UnityAds.isInitialized) {
             onComplete()
             return
         }
 
-        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
-            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
-                Log.e(TAG, "Rewarded Ad Failed to show: $error - $message")
-                // On failure, continue with remaining ads (or you might want to skip the rest, but let's try to show the rest)
+        val placementToUse = loadedRewardedPlacementId ?: REWARDED_PLACEMENTS.first()
+        UnityAds.show(activity, placementToUse, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(
+                placementId: String,
+                error: UnityAds.UnityAdsShowError,
+                message: String
+            ) {
+                Log.w(TAG, "Rewarded Ad Failed to show: $error - $message")
                 showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
             }
 
             override fun onUnityAdsShowStart(placementId: String) {
-                Log.d(TAG, "Rewarded Ad Started")
+                loadedRewardedPlacementId = null
             }
 
-            override fun onUnityAdsShowClick(placementId: String) {
-                Log.d(TAG, "Rewarded Ad Clicked")
-            }
+            override fun onUnityAdsShowClick(placementId: String) {}
 
-            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
-                Log.d(TAG, "Rewarded Ad Completed with state: $state")
-                loadAd(REWARDED_AD_UNIT_ID) // Preload next
+            override fun onUnityAdsShowComplete(
+                placementId: String,
+                state: UnityAds.UnityAdsShowCompletionState
+            ) {
+                preloadRewardedWithFallback(0)
                 showMultipleRewardedAds(activity, remainingAds - 1, onComplete)
             }
         })
@@ -102,35 +185,34 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
             onComplete()
             return
         }
-        
-        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
-            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
-                Log.e(TAG, "Rewarded Ad Failed to show: $error - $message")
+
+        val placementToUse = loadedRewardedPlacementId ?: REWARDED_PLACEMENTS.first()
+        UnityAds.show(activity, placementToUse, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(
+                placementId: String,
+                error: UnityAds.UnityAdsShowError,
+                message: String
+            ) {
+                Log.w(TAG, "Rewarded Ad Failed to show: $error - $message")
                 onComplete()
             }
 
             override fun onUnityAdsShowStart(placementId: String) {
-                Log.d(TAG, "Rewarded Ad Started")
+                loadedRewardedPlacementId = null
             }
 
-            override fun onUnityAdsShowClick(placementId: String) {
-                Log.d(TAG, "Rewarded Ad Clicked")
-            }
+            override fun onUnityAdsShowClick(placementId: String) {}
 
-            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
-                Log.d(TAG, "Rewarded Ad Completed with state: $state")
-                // We proceed whether they completed it or skipped it.
+            override fun onUnityAdsShowComplete(
+                placementId: String,
+                state: UnityAds.UnityAdsShowCompletionState
+            ) {
                 onComplete()
-                // Preload the next one
-                loadAd(REWARDED_AD_UNIT_ID)
+                preloadRewardedWithFallback(0)
             }
         })
     }
 
-    /**
-     * Called when the user stops the black screen. Shows an interstitial every 3rd time.
-     */
-    
     fun showRewardedAdWithWait(
         activity: Activity,
         onLoading: () -> Unit,
@@ -139,46 +221,118 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     ): () -> Unit {
         var isCancelled = false
 
-        if (!UnityAds.isInitialized) {
-            onFailed("Ads not initialized yet.")
-            return { isCancelled = true }
+        val loadAndShow = {
+            val readyPlacement = loadedRewardedPlacementId
+            if (readyPlacement != null) {
+                showLoadedRewardedAd(
+                    activity = activity,
+                    placementId = readyPlacement,
+                    isCancelled = { isCancelled },
+                    onSuccess = onSuccess,
+                    onFailed = {
+                        onLoading()
+                        preloadRewardedWithFallback(
+                            index = 0,
+                            onLoaded = { freshId ->
+                                if (!isCancelled) {
+                                    showLoadedRewardedAd(
+                                        activity = activity,
+                                        placementId = freshId,
+                                        isCancelled = { isCancelled },
+                                        onSuccess = onSuccess,
+                                        onFailed = onFailed
+                                    )
+                                }
+                            },
+                            onAllFailed = {
+                                if (!isCancelled) {
+                                    onFailed("Failed to load ad. Please check your internet connection and try again.")
+                                }
+                            }
+                        )
+                    }
+                )
+            } else {
+                onLoading()
+                preloadRewardedWithFallback(
+                    index = 0,
+                    onLoaded = { freshId ->
+                        if (!isCancelled) {
+                            showLoadedRewardedAd(
+                                activity = activity,
+                                placementId = freshId,
+                                isCancelled = { isCancelled },
+                                onSuccess = onSuccess,
+                                onFailed = onFailed
+                            )
+                        }
+                    },
+                    onAllFailed = {
+                        if (!isCancelled) {
+                            onFailed("Failed to load ad. Please check your internet connection and try again.")
+                        }
+                    }
+                )
+            }
         }
 
-        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
-            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
-                if (isCancelled) return
-                onLoading()
-                UnityAds.load(REWARDED_AD_UNIT_ID, object : IUnityAdsLoadListener {
-                    override fun onUnityAdsAdLoaded(placementId: String) {
-                        if (isCancelled) return
-                        UnityAds.show(activity, REWARDED_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
-                            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
-                                if (isCancelled) return
-                                onFailed("Failed to load ad. Please try again later.")
-                            }
-                            override fun onUnityAdsShowStart(placementId: String) {}
-                            override fun onUnityAdsShowClick(placementId: String) {}
-                            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
-                                if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) onSuccess() else onFailed("Ad was not completed.")
-                                loadAd(REWARDED_AD_UNIT_ID)
-                            }
-                        })
+        if (!UnityAds.isInitialized) {
+            onLoading()
+            initialize {
+                if (!isCancelled) {
+                    if (UnityAds.isInitialized) {
+                        loadAndShow()
+                    } else {
+                        onFailed("Ads service could not initialize. Please check your internet connection.")
                     }
-                    override fun onUnityAdsFailedToLoad(placementId: String, error: UnityAds.UnityAdsLoadError, message: String) {
-                        if (isCancelled) return
-                        onFailed("Failed to load ad. Please try again later.")
-                    }
-                })
+                }
             }
-            override fun onUnityAdsShowStart(placementId: String) {}
-            override fun onUnityAdsShowClick(placementId: String) {}
-            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
-                if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) onSuccess() else onFailed("Ad was not completed.")
-                loadAd(REWARDED_AD_UNIT_ID)
+        } else {
+            loadAndShow()
+        }
+
+        return { isCancelled = true }
+    }
+
+    private fun showLoadedRewardedAd(
+        activity: Activity,
+        placementId: String,
+        isCancelled: () -> Boolean,
+        onSuccess: () -> Unit,
+        onFailed: (String) -> Unit
+    ) {
+        UnityAds.show(activity, placementId, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(
+                id: String,
+                error: UnityAds.UnityAdsShowError,
+                message: String
+            ) {
+                loadedRewardedPlacementId = null
+                if (!isCancelled()) {
+                    onFailed("Failed to show ad. Please try again.")
+                }
+            }
+
+            override fun onUnityAdsShowStart(id: String) {
+                loadedRewardedPlacementId = null
+            }
+
+            override fun onUnityAdsShowClick(id: String) {}
+
+            override fun onUnityAdsShowComplete(
+                id: String,
+                state: UnityAds.UnityAdsShowCompletionState
+            ) {
+                if (!isCancelled()) {
+                    if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) {
+                        onSuccess()
+                    } else {
+                        onFailed("Ad was not completed.")
+                    }
+                }
+                preloadRewardedWithFallback(0)
             }
         })
-        
-        return { isCancelled = true }
     }
 
     fun onStopAction(activity: Activity) {
@@ -192,22 +346,31 @@ class UnityAdsManager(private val context: Context) : IUnityAdsInitializationLis
     private fun showInterstitialAd(activity: Activity) {
         if (!UnityAds.isInitialized) return
 
-        UnityAds.show(activity, INTERSTITIAL_AD_UNIT_ID, UnityAdsShowOptions(), object : IUnityAdsShowListener {
-            override fun onUnityAdsShowFailure(placementId: String, error: UnityAds.UnityAdsShowError, message: String) {
-                Log.e(TAG, "Interstitial Ad Failed to show: $error - $message")
+        val placementToUse = loadedInterstitialPlacementId ?: INTERSTITIAL_PLACEMENTS.first()
+        UnityAds.show(activity, placementToUse, UnityAdsShowOptions(), object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(
+                placementId: String,
+                error: UnityAds.UnityAdsShowError,
+                message: String
+            ) {
+                Log.w(TAG, "Interstitial Ad Failed to show: $error - $message")
+                loadedInterstitialPlacementId = null
+                preloadInterstitialWithFallback(0)
             }
 
             override fun onUnityAdsShowStart(placementId: String) {
                 Log.d(TAG, "Interstitial Ad Started")
+                loadedInterstitialPlacementId = null
             }
 
-            override fun onUnityAdsShowClick(placementId: String) {
-                Log.d(TAG, "Interstitial Ad Clicked")
-            }
+            override fun onUnityAdsShowClick(placementId: String) {}
 
-            override fun onUnityAdsShowComplete(placementId: String, state: UnityAds.UnityAdsShowCompletionState) {
+            override fun onUnityAdsShowComplete(
+                placementId: String,
+                state: UnityAds.UnityAdsShowCompletionState
+            ) {
                 Log.d(TAG, "Interstitial Ad Completed with state: $state")
-                loadAd(INTERSTITIAL_AD_UNIT_ID)
+                preloadInterstitialWithFallback(0)
             }
         })
     }

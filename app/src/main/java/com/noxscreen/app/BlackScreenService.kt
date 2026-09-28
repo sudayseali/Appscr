@@ -167,7 +167,7 @@ class BlackScreenService : Service() {
                 startForeground(notificationId, createNotification())
             }
         } catch (e: Exception) {
-            Log.e("BlackScreenService", "Error starting foreground service: ${e.message}")
+            Log.w("BlackScreenService", "Error starting foreground service: ${e.message}")
         }
         
         setupFloatingView()
