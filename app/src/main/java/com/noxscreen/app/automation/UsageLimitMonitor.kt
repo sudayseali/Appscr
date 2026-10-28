@@ -35,7 +35,7 @@ class UsageLimitMonitor(
             }
             checkUsageLimits()
             if (isMonitoring) {
-                handler.postDelayed(this, 1000) // Check every 1 second only when Focus Mode is active
+                handler.postDelayed(this, 2500) // Poll every 2.5s instead of 1s to save battery and reduce Binder IPC load
             }
         }
     }

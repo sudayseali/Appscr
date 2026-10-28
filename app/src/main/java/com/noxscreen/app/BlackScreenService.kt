@@ -619,13 +619,15 @@ class BlackScreenService : Service() {
             blackoutStartTime = 0
         }
         try {
-            if (blackoutView?.parent != null) {
+            if (blackoutView != null && blackoutView?.isAttachedToWindow == true) {
                 windowManager.removeView(blackoutView)
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            android.util.Log.w("BlackScreenService", "Error removing blackout view: ${e.message}")
+        }
 
         try {
-            if (floatingView?.parent == null) {
+            if (floatingView != null && floatingView?.isAttachedToWindow != true) {
                 windowManager.addView(floatingView, floatingLayoutParams)
             }
         } catch (e: Exception) {
@@ -638,10 +640,12 @@ class BlackScreenService : Service() {
             return
         }
         try {
-            if (floatingView?.parent != null) {
+            if (floatingView != null && floatingView?.isAttachedToWindow == true) {
                 windowManager.removeView(floatingView)
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            android.util.Log.w("BlackScreenService", "Error removing floating view: ${e.message}")
+        }
 
         try {
             if (blackoutView?.parent == null) {
