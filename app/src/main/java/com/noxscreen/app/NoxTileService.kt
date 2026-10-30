@@ -23,7 +23,7 @@ class NoxTileService : TileService() {
         val tile = qsTile
         if (tile != null) {
             tile.state = if (isRunning) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-            tile.label = if (isRunning) "Start NoxScreen" else "Stop NoxScreen"
+            tile.label = if (isRunning) getString(R.string.quick_settings_tile_start) else getString(R.string.quick_settings_tile_stop)
             tile.updateTile()
         }
         
@@ -40,7 +40,7 @@ class NoxTileService : TileService() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
                 tile?.let {
                     it.state = Tile.STATE_INACTIVE
-                    it.label = "Start NoxScreen"
+                    it.label = getString(R.string.quick_settings_tile_start)
                     it.updateTile()
                 }
                 try {
@@ -73,7 +73,7 @@ class NoxTileService : TileService() {
             } catch (e: Exception) {
                 tile?.let {
                     it.state = Tile.STATE_INACTIVE
-                    it.label = "Start NoxScreen"
+                    it.label = getString(R.string.quick_settings_tile_start)
                     it.updateTile()
                 }
             }
@@ -85,8 +85,7 @@ class NoxTileService : TileService() {
         val isRunning = BlackScreenService.isRunning
         
         tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.label = if (isRunning) "Stop NoxScreen" else "Start NoxScreen"
-        // tile.icon = Icon.createWithResource(this, R.drawable.ic_launcher_foreground)
+        tile.label = if (isRunning) getString(R.string.quick_settings_tile_stop) else getString(R.string.quick_settings_tile_start)
         tile.updateTile()
     }
 }

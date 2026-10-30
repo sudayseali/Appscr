@@ -668,8 +668,7 @@ class BlackScreenService : Service() {
 
                 var windowFlags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                        WindowManager.LayoutParams.FLAG_FULLSCREEN
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
                 if (config.isAntiSpyEnabled) {
                     windowFlags = windowFlags or WindowManager.LayoutParams.FLAG_SECURE
                 }
@@ -691,15 +690,17 @@ class BlackScreenService : Service() {
                     }
                 }
                 
-                @Suppress("DEPRECATION")
-                val uiFlags = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN)
-                
-                blackoutView?.systemUiVisibility = uiFlags
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                    @Suppress("DEPRECATION")
+                    val uiFlags = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_FULLSCREEN)
+                    @Suppress("DEPRECATION")
+                    blackoutView?.systemUiVisibility = uiFlags
+                }
 
                 windowManager.addView(blackoutView, params)
                 
@@ -709,9 +710,6 @@ class BlackScreenService : Service() {
                             controller.hide(android.view.WindowInsets.Type.systemBars())
                             controller.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                         }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        blackoutView?.systemUiVisibility = uiFlags
                     }
                 }
                 

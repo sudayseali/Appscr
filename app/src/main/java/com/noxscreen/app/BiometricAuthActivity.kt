@@ -82,9 +82,13 @@ class BiometricAuthActivity : FragmentActivity() {
 
         window.addFlags(
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN or
             android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).let { controller ->
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
