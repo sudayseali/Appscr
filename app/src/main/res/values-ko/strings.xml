@@ -116,6 +116,8 @@
     <string name="unlock_button_text">잠금 해제</string>
     <string name="notification_active_title">NoxScreen Pro 실행 중</string>
     <string name="notification_tap_to_stop">탭하여 중지</string>
+    <string name="quick_settings_tile_start">NoxScreen 시작</string>
+    <string name="quick_settings_tile_stop">NoxScreen 중지</string>
 
     <string name="support">고객 지원</string>
     <string name="support_subtitle">직접 문의 및 고객 상담</string>

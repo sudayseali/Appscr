@@ -116,6 +116,8 @@
     <string name="unlock_button_text">DESBLOQUEAR</string>
     <string name="notification_active_title">NoxScreen Pro Ativo</string>
     <string name="notification_tap_to_stop">Toque para parar</string>
+    <string name="quick_settings_tile_start">Iniciar NoxScreen</string>
+    <string name="quick_settings_tile_stop">Parar NoxScreen</string>
 
     <string name="support">Suporte</string>
     <string name="support_subtitle">Ajuda direta e atendimento ao cliente</string>

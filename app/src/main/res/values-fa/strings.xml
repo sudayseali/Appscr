@@ -116,6 +116,8 @@
     <string name="unlock_button_text">باز کردن قفل</string>
     <string name="notification_active_title">NoxScreen Pro فعال است</string>
     <string name="notification_tap_to_stop">برای توقف ضربه بزنید</string>
+    <string name="quick_settings_tile_start">شروع NoxScreen</string>
+    <string name="quick_settings_tile_stop">توقف NoxScreen</string>
 
     <string name="support">پشتیبانی</string>
     <string name="support_subtitle">راهنمایی مستقیم و خدمات مشتریان</string>

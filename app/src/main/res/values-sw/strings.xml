@@ -116,6 +116,8 @@
     <string name="unlock_button_text">FUNGUA</string>
     <string name="notification_active_title">NoxScreen Pro Inafanya Kazi</string>
     <string name="notification_tap_to_stop">Gusa ili kusimamisha</string>
+    <string name="quick_settings_tile_start">Anzisha NoxScreen</string>
+    <string name="quick_settings_tile_stop">Sitisha NoxScreen</string>
 
     <string name="support">Msaada</string>
     <string name="support_subtitle">Usaidizi wa moja kwa moja kwa wateja</string>

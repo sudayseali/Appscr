@@ -116,6 +116,8 @@
     <string name="unlock_button_text">立即解锁</string>
     <string name="notification_active_title">NoxScreen Pro 正在运行</string>
     <string name="notification_tap_to_stop">点击关闭黑屏服务</string>
+    <string name="quick_settings_tile_start">启动 NoxScreen</string>
+    <string name="quick_settings_tile_stop">停止 NoxScreen</string>
 
     <string name="support">帮助与客服支持</string>
     <string name="support_subtitle">在线技术支持与问题反馈</string>

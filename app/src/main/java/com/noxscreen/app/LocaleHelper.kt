@@ -78,6 +78,12 @@ object LocaleHelper {
             context.sendBroadcast(
                 android.content.Intent("com.noxscreen.app.SETTINGS_UPDATED").setPackage(context.packageName)
             )
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                android.service.quicksettings.TileService.requestListeningState(
+                    context,
+                    android.content.ComponentName(context, NoxTileService::class.java)
+                )
+            }
         } catch (_: Exception) {}
         if (context is Activity) {
             context.recreate()

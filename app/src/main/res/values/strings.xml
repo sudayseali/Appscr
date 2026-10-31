@@ -120,9 +120,9 @@
     <string name="quick_settings_tile_stop">Stop NoxScreen</string>
 
     <string name="support">Support</string>
-    <string name="support_subtitle">Direct help &amp; customer assistance</string>
+    <string name="support_subtitle">Direct WhatsApp customer assistance</string>
     <string name="whatsapp_support">WhatsApp Support</string>
-    <string name="whatsapp_support_prompt">Need help with NoxScreen? Contact us directly on WhatsApp.</string>
+    <string name="whatsapp_support_prompt">Need help with NoxScreen? Chat with us on WhatsApp.</string>
     <string name="whatsapp">WhatsApp</string>
 
     <string name="background_protection">Background Protection</string>

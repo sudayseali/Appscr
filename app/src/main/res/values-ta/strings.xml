@@ -116,6 +116,8 @@
     <string name="unlock_button_text">திற</string>
     <string name="notification_active_title">NoxScreen Pro செயலில் உள்ளது</string>
     <string name="notification_tap_to_stop">நிறுத்த தட்டவும்</string>
+    <string name="quick_settings_tile_start">NoxScreen தொடங்கு</string>
+    <string name="quick_settings_tile_stop">NoxScreen நிறுத்து</string>
 
     <string name="support">ஆதரவு</string>
     <string name="support_subtitle">நேரடி உதவி மற்றும் வாடிக்கையாளர் சேவை</string>

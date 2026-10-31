@@ -564,7 +564,7 @@ class BlackScreenService : Service() {
             requestLayout()
         }
         try {
-            if (floatingView?.parent != null) {
+            if (floatingView != null && floatingView?.isAttachedToWindow == true) {
                 windowManager.updateViewLayout(floatingView, floatingLayoutParams)
             }
         } catch (e: Exception) {}
@@ -648,7 +648,7 @@ class BlackScreenService : Service() {
         }
 
         try {
-            if (blackoutView?.parent == null) {
+            if (blackoutView != null && blackoutView?.isAttachedToWindow != true) {
                 val config = smartAutomationManager.settings.getConfig()
                 blackoutView?.setBackgroundColor(Color.BLACK)
 
@@ -742,8 +742,8 @@ class BlackScreenService : Service() {
             blackoutStartTime = 0
         }
         try {
-            if (floatingView?.parent != null) windowManager.removeView(floatingView)
-            if (blackoutView?.parent != null) windowManager.removeView(blackoutView)
+            if (floatingView != null && floatingView?.isAttachedToWindow == true) windowManager.removeView(floatingView)
+            if (blackoutView != null && blackoutView?.isAttachedToWindow == true) windowManager.removeView(blackoutView)
         } catch (e: Exception) { }
     }
 

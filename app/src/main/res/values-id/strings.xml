@@ -116,6 +116,8 @@
     <string name="unlock_button_text">BUKA KUNCI</string>
     <string name="notification_active_title">NoxScreen Pro Aktif</string>
     <string name="notification_tap_to_stop">Ketuk untuk menghentikan</string>
+    <string name="quick_settings_tile_start">Mulai NoxScreen</string>
+    <string name="quick_settings_tile_stop">Hentikan NoxScreen</string>
 
     <string name="support">Dukungan</string>
     <string name="support_subtitle">Bantuan langsung &amp; layanan pelanggan</string>

@@ -116,6 +116,8 @@
     <string name="unlock_button_text">ロック解除</string>
     <string name="notification_active_title">NoxScreen Pro 稼働中</string>
     <string name="notification_tap_to_stop">タップして停止</string>
+    <string name="quick_settings_tile_start">NoxScreenを開始</string>
+    <string name="quick_settings_tile_stop">NoxScreenを停止</string>
 
     <string name="support">サポート</string>
     <string name="support_subtitle">直接のお問い合わせ・カスタマーサポート</string>

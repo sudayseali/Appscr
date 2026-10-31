@@ -116,6 +116,8 @@
     <string name="unlock_button_text">فتح القفل</string>
     <string name="notification_active_title">NoxScreen Pro نشط</string>
     <string name="notification_tap_to_stop">انقر للإيقاف</string>
+    <string name="quick_settings_tile_start">تشغيل NoxScreen</string>
+    <string name="quick_settings_tile_stop">إيقاف NoxScreen</string>
 
     <string name="support">الدعم الفني</string>
     <string name="support_subtitle">المساعدة المباشرة وخدمة العملاء</string>

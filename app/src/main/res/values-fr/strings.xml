@@ -116,6 +116,8 @@
     <string name="unlock_button_text">DÉVERROUILLER</string>
     <string name="notification_active_title">NoxScreen Pro Actif</string>
     <string name="notification_tap_to_stop">Appuyez pour arrêter</string>
+    <string name="quick_settings_tile_start">Démarrer NoxScreen</string>
+    <string name="quick_settings_tile_stop">Arrêter NoxScreen</string>
 
     <string name="support">Assistance</string>
     <string name="support_subtitle">Aide directe et service client</string>

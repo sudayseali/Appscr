@@ -15,6 +15,7 @@ object SupportHelper {
     private const val WHATSAPP_PACKAGE = "com.whatsapp"
     private const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
 
+
     fun buildWhatsAppUri(includeDefaultMessage: Boolean = true): Uri {
         val baseUri = Uri.parse(WHATSAPP_URL)
         return if (includeDefaultMessage) {
@@ -48,6 +49,8 @@ object SupportHelper {
         // 4. Final fallback: open exact https://wa.me/252637864155 in browser
         tryLaunchBrowser(context, fallbackUri)
     }
+
+
 
     private fun tryLaunchApp(context: Context, uri: Uri, packageName: String): Boolean {
         return try {

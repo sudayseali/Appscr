@@ -116,6 +116,8 @@
     <string name="unlock_button_text">РАЗБЛОКИРОВАТЬ</string>
     <string name="notification_active_title">NoxScreen Pro активен</string>
     <string name="notification_tap_to_stop">Нажмите для остановки</string>
+    <string name="quick_settings_tile_start">Запустить NoxScreen</string>
+    <string name="quick_settings_tile_stop">Остановить NoxScreen</string>
 
     <string name="support">Поддержка</string>
     <string name="support_subtitle">Прямая помощь и обслуживание клиентов</string>

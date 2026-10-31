@@ -116,6 +116,8 @@
     <string name="unlock_button_text">MỞ KHÓA</string>
     <string name="notification_active_title">NoxScreen Pro đang hoạt động</string>
     <string name="notification_tap_to_stop">Chạm để dừng</string>
+    <string name="quick_settings_tile_start">Bắt đầu NoxScreen</string>
+    <string name="quick_settings_tile_stop">Dừng NoxScreen</string>
 
     <string name="support">Hỗ trợ</string>
     <string name="support_subtitle">Trợ giúp trực tiếp &amp; chăm sóc khách hàng</string>

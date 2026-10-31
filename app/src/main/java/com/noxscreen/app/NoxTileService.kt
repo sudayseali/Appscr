@@ -1,18 +1,82 @@
 package com.noxscreen.app
 
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.Icon
+import android.content.IntentFilter
 import android.os.Build
+import android.provider.Settings
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
+import androidx.annotation.StringRes
 
 @RequiresApi(Build.VERSION_CODES.N)
 class NoxTileService : TileService() {
 
+    private var isReceiverRegistered = false
+
+    private val settingsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateTileState()
+        }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
+    }
+
     override fun onStartListening() {
         super.onStartListening()
+        LocaleHelper.applyLocale(this)
+        registerUpdateReceiver()
         updateTileState()
+    }
+
+    override fun onStopListening() {
+        super.onStopListening()
+        unregisterUpdateReceiver()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterUpdateReceiver()
+    }
+
+    private fun registerUpdateReceiver() {
+        if (!isReceiverRegistered) {
+            val filter = IntentFilter().apply {
+                addAction("com.noxscreen.app.SETTINGS_UPDATED")
+                addAction(Intent.ACTION_LOCALE_CHANGED)
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(settingsReceiver, filter, RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(settingsReceiver, filter)
+                }
+                isReceiverRegistered = true
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun unregisterUpdateReceiver() {
+        if (isReceiverRegistered) {
+            try {
+                unregisterReceiver(settingsReceiver)
+            } catch (_: Exception) {}
+            isReceiverRegistered = false
+        }
+    }
+
+    private fun getLocalizedString(@StringRes resId: Int): String {
+        return try {
+            val localizedContext = LocaleHelper.applyLocale(this)
+            localizedContext.getString(resId)
+        } catch (_: Exception) {
+            getString(resId)
+        }
     }
 
     override fun onClick() {
@@ -23,7 +87,19 @@ class NoxTileService : TileService() {
         val tile = qsTile
         if (tile != null) {
             tile.state = if (isRunning) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-            tile.label = if (isRunning) getString(R.string.quick_settings_tile_start) else getString(R.string.quick_settings_tile_stop)
+            tile.label = if (isRunning) {
+                getLocalizedString(R.string.quick_settings_tile_start)
+            } else {
+                getLocalizedString(R.string.quick_settings_tile_stop)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                tile.subtitle = if (isRunning) {
+                    getLocalizedString(R.string.status_disabled)
+                } else {
+                    getLocalizedString(R.string.status_active)
+                }
+                tile.contentDescription = tile.label
+            }
             tile.updateTile()
         }
         
@@ -37,10 +113,14 @@ class NoxTileService : TileService() {
                 e.printStackTrace()
             }
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
                 tile?.let {
                     it.state = Tile.STATE_INACTIVE
-                    it.label = getString(R.string.quick_settings_tile_start)
+                    it.label = getLocalizedString(R.string.quick_settings_tile_start)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        it.subtitle = getLocalizedString(R.string.status_disabled)
+                        it.contentDescription = it.label
+                    }
                     it.updateTile()
                 }
                 try {
@@ -48,9 +128,9 @@ class NoxTileService : TileService() {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        val pendingIntent = android.app.PendingIntent.getActivity(
+                        val pendingIntent = PendingIntent.getActivity(
                             this, 0, mainIntent,
-                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                         )
                         startActivityAndCollapse(pendingIntent)
                     } else {
@@ -73,7 +153,11 @@ class NoxTileService : TileService() {
             } catch (e: Exception) {
                 tile?.let {
                     it.state = Tile.STATE_INACTIVE
-                    it.label = getString(R.string.quick_settings_tile_start)
+                    it.label = getLocalizedString(R.string.quick_settings_tile_start)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        it.subtitle = getLocalizedString(R.string.status_disabled)
+                        it.contentDescription = it.label
+                    }
                     it.updateTile()
                 }
             }
@@ -85,7 +169,19 @@ class NoxTileService : TileService() {
         val isRunning = BlackScreenService.isRunning
         
         tile.state = if (isRunning) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.label = if (isRunning) getString(R.string.quick_settings_tile_stop) else getString(R.string.quick_settings_tile_start)
+        tile.label = if (isRunning) {
+            getLocalizedString(R.string.quick_settings_tile_stop)
+        } else {
+            getLocalizedString(R.string.quick_settings_tile_start)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            tile.subtitle = if (isRunning) {
+                getLocalizedString(R.string.status_active)
+            } else {
+                getLocalizedString(R.string.status_disabled)
+            }
+            tile.contentDescription = tile.label
+        }
         tile.updateTile()
     }
 }

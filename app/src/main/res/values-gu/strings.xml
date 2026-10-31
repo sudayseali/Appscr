@@ -116,6 +116,8 @@
     <string name="unlock_button_text">અનલોક</string>
     <string name="notification_active_title">NoxScreen Pro સક્રિય છે</string>
     <string name="notification_tap_to_stop">બંધ કરવા માટે ટૅપ કરો</string>
+    <string name="quick_settings_tile_start">NoxScreen શરૂ કરો</string>
+    <string name="quick_settings_tile_stop">NoxScreen બંધ કરો</string>
 
     <string name="support">સપોર્ટ</string>
     <string name="support_subtitle">સીધી મદદ અને ગ્રાહક સેવા</string>
